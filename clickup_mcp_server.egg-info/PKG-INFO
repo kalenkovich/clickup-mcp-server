@@ -1,0 +1,7 @@
+Metadata-Version: 2.2
+Name: clickup-mcp-server
+Version: 0.1.0
+Requires-Dist: setuptools
+Requires-Dist: wheel
+Requires-Dist: types-setuptools
+Dynamic: requires-dist

@@ -1,0 +1,85 @@
+{
+  "name": "@mcp/clickup-server",
+  "version": "1.0.0",
+  "description": "ClickUp MCP Server for LLM integration",
+  "main": "dist/server.js",
+  "type": "module",
+  "bin": {
+    "clickup-server": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "start:env": "cross-env NODE_ENV=production node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:env": "cross-env NODE_ENV=development ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "npm run build",
+    "postinstall": "node bin/postinstall.js",
+    "config:set": "node bin/config-env.js set",
+    "config:get": "node bin/config-env.js get",
+    "config:list": "node bin/config-env.js list"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "public",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "clickup",
+    "mcp",
+    "llm",
+    "api",
+    "server"
+  ],
+  "author": "MCP Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "0.6.0",
+    "axios": "^1.6.7",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.1",
+    "express": "^4.21.2",
+    "open": "^8.4.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.11.16",
+    "@types/supertest": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^6.20.0",
+    "@typescript-eslint/parser": "^6.20.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.2.4",
+    "supertest": "^6.3.4",
+    "ts-jest": "^29.1.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "mcp": {
+    "type": "server",
+    "configFile": "src/mcp-config.ts",
+    "commands": {
+      "start": "npm start",
+      "dev": "npm run dev"
+    },
+    "capabilities": [
+      "oauth",
+      "api-integration",
+      "rate-limiting"
+    ]
+  }
+}

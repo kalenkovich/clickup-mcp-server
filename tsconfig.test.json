@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node", "supertest"],
+    "esModuleInterop": true,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/__tests__/types"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.test.ts",
+    "src/__tests__/**/*.ts",
+    "src/__tests__/types/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+} 
