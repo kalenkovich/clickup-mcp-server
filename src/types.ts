@@ -99,31 +99,19 @@ export interface Status {
   color: string;
 }
 
-// OAuth Types
-export interface TokenData {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number;
-  team_id?: string;
-}
-
-export interface OAuthConfig {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  apiUrl: string;
-  authUrl: string;
-}
-
 // Server Configuration Types
 export interface ServerConfig {
   port: number;
   logLevel: string;
 }
 
+// Update Config interface to remove OAuth part
 export interface Config {
   server: ServerConfig;
-  clickUp: OAuthConfig;
+  // clickUp: OAuthConfig; // Removed
+  clickUpPersonalToken: string;
+  clickUpApiUrl: string;
+  encryptionKey: string;
 }
 
 // MCP Tool Types

@@ -10,25 +10,33 @@ interface ServerConfig {
   logLevel: string;
 }
 
-interface ClickUpConfig {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  apiUrl: string;
-  authUrl: string;
-}
+// Remove ClickUpConfig for OAuth
+// interface ClickUpConfig {
+//   clientId: string;
+//   clientSecret: string;
+//   redirectUri: string;
+//   apiUrl: string;
+//   authUrl: string;
+// }
 
 interface Config {
   server: ServerConfig;
-  clickUp: ClickUpConfig;
+  // Remove clickUp property holding OAuth config
+  // clickUp: ClickUpConfig;
+  clickUpPersonalToken: string; // Add property for Personal API Token
+  clickUpApiUrl: string; // Keep API URL separate
+  encryptionKey: string; // Keep encryption key for potentially encrypting token at rest
 }
 
-function generateEncryptionKey(): string {
-  return crypto.randomBytes(32).toString("hex");
-}
+// Removed unused generateEncryptionKey - handled within validateConfig now if needed
+// function generateEncryptionKey(): string {
+//   return crypto.randomBytes(32).toString("hex");
+// }
 
 function validateConfig(): Config {
-  const requiredEnvVars = ["CLICKUP_CLIENT_ID", "CLICKUP_CLIENT_SECRET"];
+  // Update required env vars
+  const requiredEnvVars = ["CLICKUP_PERSONAL_TOKEN"];
+  // const requiredEnvVars = ["CLICKUP_CLIENT_ID", "CLICKUP_CLIENT_SECRET"];
 
   const missingVars = requiredEnvVars.filter(
     (varName) => !process.env[varName]
@@ -42,26 +50,34 @@ function validateConfig(): Config {
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
   const logLevel = process.env.LOG_LEVEL || "info";
 
-  // In development, we use a dynamic redirect URI based on the port
-  const redirectUri =
-    process.env.CLICKUP_REDIRECT_URI ||
-    `http://localhost:${port}/oauth/clickup/callback`;
+  // Remove dynamic redirect URI logic
+  // const redirectUri =
+  //   process.env.CLICKUP_REDIRECT_URI ||
+  //   `http://localhost:${port}/oauth/clickup/callback`;
 
-  // Generate encryption key if not provided
-  const encryptionKey = process.env.ENCRYPTION_KEY || generateEncryptionKey();
+  // Get ClickUp Personal Token
+  const clickUpPersonalToken = process.env.CLICKUP_PERSONAL_TOKEN!;
+
+  // Get or Generate encryption key (still potentially useful for encrypting the token at rest)
+  const encryptionKey =
+    process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
 
   return {
     server: {
       port,
       logLevel,
     },
-    clickUp: {
-      clientId: process.env.CLICKUP_CLIENT_ID!,
-      clientSecret: process.env.CLICKUP_CLIENT_SECRET!,
-      redirectUri,
-      apiUrl: "https://api.clickup.com/api/v2",
-      authUrl: "https://app.clickup.com/api",
-    },
+    // Remove clickUp object
+    // clickUp: {
+    //   clientId: process.env.CLICKUP_CLIENT_ID!,
+    //   clientSecret: process.env.CLICKUP_CLIENT_SECRET!,
+    //   redirectUri,
+    //   apiUrl: "https://api.clickup.com/api/v2",
+    //   authUrl: "https://app.clickup.com/api",
+    // },
+    clickUpPersonalToken, // Add token directly
+    clickUpApiUrl: "https://api.clickup.com/api/v2", // Keep API URL
+    encryptionKey, // Keep encryption key
   };
 }
 

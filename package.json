@@ -1,11 +1,11 @@
 {
-  "name": "@mcp/clickup-server",
+  "name": "@nazruden/clickup-server",
   "version": "1.0.0",
   "description": "ClickUp MCP Server for LLM integration",
   "main": "dist/server.js",
   "type": "module",
   "bin": {
-    "clickup-server": "./dist/index.js"
+    "clickup-server": "dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

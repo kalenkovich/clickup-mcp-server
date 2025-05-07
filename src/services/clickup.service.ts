@@ -6,34 +6,68 @@ import axios, {
   AxiosRequestConfig,
   InternalAxiosRequestConfig,
 } from "axios";
-import { encrypt, decrypt } from "../security.js";
+// Encryption is optional now, only if we want to encrypt the token at rest (less critical than OAuth tokens)
+// import { encrypt, decrypt } from "../security.js";
 import { logger } from "../logger.js";
+// Import the refactored config
 import { config } from "../config/app.config.js";
-import { ClickUpTask, ClickUpList, ClickUpBoard } from "../types.js";
+import {
+  ClickUpTask,
+  ClickUpList,
+  ClickUpBoard,
+  ClickUpTeam,
+} from "../types.js"; // Keep ClickUpTeam for API v2 responses
 
-interface TokenData {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number;
-}
+// Remove TokenData interface if not used elsewhere (it was removed from types.ts)
+// interface TokenData { ... }
 
 export class ClickUpService {
   private client: AxiosInstance;
-  private tokenStore: Map<string, string>;
+  // Remove tokenStore
+  // private tokenStore: Map<string, string>;
+  private personalToken: string; // Store the personal token
 
   constructor() {
-    this.tokenStore = new Map();
+    // Remove tokenStore initialization
+    // this.tokenStore = new Map();
+
+    // Store the personal token from config
+    this.personalToken = config.clickUpPersonalToken;
+    if (!this.personalToken) {
+      // This should be caught by config validation, but double-check
+      throw new Error(
+        "ClickUp Personal API Token is missing in configuration."
+      );
+    }
 
     this.client = axios.create({
-      baseURL: config.clickUp.apiUrl,
+      // Use the specific API URL from the refactored config
+      baseURL: config.clickUpApiUrl,
       headers: {
         "Content-Type": "application/json",
       },
     });
 
-    // Add response interceptor for rate limiting
+    // Add REQUEST interceptor for Authorization header
+    this.client.interceptors.request.use(
+      (axiosConfig) => {
+        // Add Authorization header using the stored personal token
+        axiosConfig.headers.Authorization = `${this.personalToken}`;
+        // It seems ClickUp API uses the token directly, not "Bearer " prefix for personal tokens
+        // axiosConfig.headers.Authorization = `Bearer ${this.personalToken}`;
+        logger.debug("Added Authorization header to ClickUp request.");
+        return axiosConfig;
+      },
+      (error) => {
+        logger.error("Error adding Authorization header:", error);
+        return Promise.reject(error);
+      }
+    );
+
+    // Keep existing response interceptor for rate limiting
     this.client.interceptors.response.use(
       (response) => {
+        // ... rate limit logging ...
         const remaining = parseInt(
           response.headers["x-ratelimit-remaining"] || "100"
         );
@@ -44,6 +78,7 @@ export class ClickUpService {
         return response;
       },
       (error: AxiosError) => {
+        // ... rate limit error handling ...
         if (error.response?.status === 429) {
           logger.warn("Rate limit exceeded");
         }
@@ -52,66 +87,36 @@ export class ClickUpService {
     );
   }
 
-  private async getToken(userId: string): Promise<string> {
-    const encryptedData = this.tokenStore.get(userId);
-    if (!encryptedData) {
-      throw new Error("No authentication token found");
-    }
+  // Remove getToken method
+  // private async getToken(...) { ... }
 
-    const tokenData: TokenData = JSON.parse(decrypt(encryptedData));
+  // Remove refreshToken method
+  // private async refreshToken(...) { ... }
 
-    if (Date.now() >= tokenData.expires_at) {
-      return this.refreshToken(userId, tokenData.refresh_token);
-    }
+  // Remove setToken method
+  // setToken(...) { ... }
 
-    return tokenData.access_token;
-  }
-
-  private async refreshToken(
-    userId: string,
-    refreshToken: string
-  ): Promise<string> {
-    try {
-      const response = await this.client.post("/oauth/token", {
-        client_id: config.clickUp.clientId,
-        client_secret: config.clickUp.clientSecret,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
-      });
-
-      const { access_token, refresh_token } = response.data;
-      const tokenData: TokenData = {
-        access_token,
-        refresh_token,
-        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-      };
-
-      this.tokenStore.set(userId, encrypt(JSON.stringify(tokenData)));
-      return access_token;
-    } catch (error) {
-      if (error instanceof Error) {
-        logger.error(`Failed to refresh token: ${error.message}`);
-      }
-      throw new Error("Failed to refresh authentication token");
-    }
-  }
-
+  // Keep getRequestConfig (or simplify if only headers needed)
   private async getRequestConfig(): Promise<AxiosRequestConfig> {
-    const headers = new AxiosHeaders();
-    headers.set("Content-Type", "application/json");
-    return { headers };
+    // No longer need to set Content-Type here if set in defaults
+    // and Authorization is handled by interceptor
+    return {}; // Return empty config, interceptor handles auth
   }
 
+  // Remove userId parameter from methods
   async createTask(taskData: ClickUpTask): Promise<ClickUpTask> {
     try {
-      const config = await this.getRequestConfig();
+      // Interceptor will add auth header
       const response = await this.client.post(
+        // Ensure list_id is present
         `/list/${taskData.list_id}/task`,
         taskData,
-        config
+        // Pass empty config or specific options if needed beyond auth/content-type
+        {}
       );
       return response.data;
     } catch (error) {
+      // ... existing error handling ...
       if (error instanceof Error) {
         logger.error(`Failed to create task: ${error.message}`);
       }
@@ -119,19 +124,17 @@ export class ClickUpService {
     }
   }
 
+  // Remove userId parameter
   async updateTask(
     taskId: string,
     updates: Partial<ClickUpTask>
   ): Promise<ClickUpTask> {
     try {
-      const config = await this.getRequestConfig();
-      const response = await this.client.put(
-        `/task/${taskId}`,
-        updates,
-        config
-      );
+      // Interceptor will add auth header
+      const response = await this.client.put(`/task/${taskId}`, updates, {});
       return response.data;
     } catch (error) {
+      // ... existing error handling ...
       if (error instanceof Error) {
         logger.error(`Failed to update task: ${error.message}`);
       }
@@ -139,12 +142,16 @@ export class ClickUpService {
     }
   }
 
-  async getTeams(): Promise<ClickUpList[]> {
+  // Remove userId parameter
+  async getTeams(): Promise<ClickUpTeam[]> {
+    // Corrected return type based on API v2
     try {
-      const config = await this.getRequestConfig();
-      const response = await this.client.get("/team", config);
+      // Interceptor will add auth header
+      const response = await this.client.get("/team", {});
+      // API v2 returns { teams: [...] }
       return response.data.teams;
     } catch (error) {
+      // ... existing error handling ...
       if (error instanceof Error) {
         logger.error(`Failed to get teams: ${error.message}`);
       }
@@ -152,15 +159,14 @@ export class ClickUpService {
     }
   }
 
+  // Remove userId parameter
   async getLists(folderId: string): Promise<ClickUpList[]> {
     try {
-      const config = await this.getRequestConfig();
-      const response = await this.client.get(
-        `/folder/${folderId}/list`,
-        config
-      );
+      // Interceptor will add auth header
+      const response = await this.client.get(`/folder/${folderId}/list`, {});
       return response.data.lists;
     } catch (error) {
+      // ... existing error handling ...
       if (error instanceof Error) {
         logger.error(`Failed to get lists: ${error.message}`);
       }
@@ -168,25 +174,23 @@ export class ClickUpService {
     }
   }
 
+  // Remove userId parameter
   async createBoard(boardData: ClickUpBoard): Promise<ClickUpBoard> {
     try {
-      const config = await this.getRequestConfig();
+      // Interceptor will add auth header
       const response = await this.client.post(
+        // Ensure space_id is present
         `/space/${boardData.space_id}/board`,
         boardData,
-        config
+        {}
       );
       return response.data;
     } catch (error) {
+      // ... existing error handling ...
       if (error instanceof Error) {
         logger.error(`Failed to create board: ${error.message}`);
       }
       throw new Error("Failed to create board in ClickUp");
     }
-  }
-
-  // Add token to store
-  setToken(userId: string, tokenData: TokenData): void {
-    this.tokenStore.set(userId, encrypt(JSON.stringify(tokenData)));
   }
 }
