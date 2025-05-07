@@ -205,4 +205,287 @@ describe("ClickUpService", () => {
       );
     });
   });
-});
+
+  // +++ Test Suites for Space Management +++
+  describe("Space Management", () => {
+    // Test suite for getSpaces
+    describe("getSpaces", () => {
+      it("should retrieve spaces for a team and return space data", async () => {
+        const params = { team_id: "team_123", archived: false };
+        const mockSpaceData = [{ id: "space1", name: "Space Alpha" }];
+        const mockResponse = { data: { spaces: mockSpaceData } };
+        mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await clickUpService.getSpaces(params);
+
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          `/team/${params.team_id}/space`,
+          { params: { archived: "false" } }
+        );
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should retrieve archived spaces if archived is true", async () => {
+        const params = { team_id: "team_123", archived: true };
+        // const mockSpaceData = [{ id: "space_arch", name: "Archived Space" }]; // Not needed for this check
+        const mockResponse = { data: { spaces: [] } }; // Actual data doesn't matter here
+        mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+        await clickUpService.getSpaces(params);
+
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          `/team/${params.team_id}/space`,
+          { params: { archived: "true" } }
+        );
+      });
+
+      it("should throw an error if ClickUp API fails to get spaces", async () => {
+        const params = { team_id: "team_123" };
+        mockedAxios.get.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.getSpaces(params)).rejects.toThrow(
+          "Failed to retrieve spaces from ClickUp"
+        );
+      });
+    });
+
+    // Test suite for createSpace
+    describe("createSpace", () => {
+      it("should create a space and return space data", async () => {
+        const params = { team_id: "team_123", name: "New Space" };
+        const mockResponse = { data: { id: "space_new", ...params } }; // API returns the created space object
+        mockedAxios.post.mockResolvedValueOnce(mockResponse);
+        const { team_id, ...bodyParams } = params;
+
+        const result = await clickUpService.createSpace(params);
+
+        expect(mockedAxios.post).toHaveBeenCalledWith(
+          `/team/${team_id}/space`,
+          bodyParams
+        );
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails to create a space", async () => {
+        const params = { team_id: "team_123", name: "New Space" };
+        mockedAxios.post.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.createSpace(params)).rejects.toThrow(
+          "Failed to create space in ClickUp"
+        );
+      });
+    });
+
+    // Test suite for getSpace
+    describe("getSpace", () => {
+      it("should retrieve a specific space and return its data", async () => {
+        const spaceId = "space_abc";
+        const mockResponse = { data: { id: spaceId, name: "Specific Space" } };
+        mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await clickUpService.getSpace(spaceId);
+
+        expect(mockedAxios.get).toHaveBeenCalledWith(`/space/${spaceId}`);
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails to get a space", async () => {
+        const spaceId = "space_abc";
+        mockedAxios.get.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.getSpace(spaceId)).rejects.toThrow(
+          "Failed to retrieve space from ClickUp"
+        );
+      });
+    });
+
+    // Test suite for updateSpace
+    describe("updateSpace", () => {
+      it("should update a space and return updated space data", async () => {
+        const params = { space_id: "space_xyz", name: "Updated Space Name" };
+        const mockResponse = {
+          data: { id: params.space_id, name: params.name },
+        };
+        mockedAxios.put.mockResolvedValueOnce(mockResponse);
+        const { space_id, ...bodyParams } = params;
+
+        const result = await clickUpService.updateSpace(params);
+
+        expect(mockedAxios.put).toHaveBeenCalledWith(
+          `/space/${space_id}`,
+          bodyParams
+        );
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails during space update", async () => {
+        const params = { space_id: "space_xyz", name: "Updated Space Name" };
+        mockedAxios.put.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.updateSpace(params)).rejects.toThrow(
+          "Failed to update space in ClickUp"
+        );
+      });
+    });
+
+    // Test suite for deleteSpace
+    describe("deleteSpace", () => {
+      it("should delete a space and return success response", async () => {
+        const spaceId = "space_todelete";
+        const mockResponse = { data: {} };
+        mockedAxios.delete.mockResolvedValueOnce(mockResponse);
+
+        const result = await clickUpService.deleteSpace(spaceId);
+
+        expect(mockedAxios.delete).toHaveBeenCalledWith(`/space/${spaceId}`);
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails to delete a space", async () => {
+        const spaceId = "space_todelete";
+        mockedAxios.delete.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.deleteSpace(spaceId)).rejects.toThrow(
+          "Failed to delete space in ClickUp"
+        );
+      });
+    });
+  }); // End of Space Management tests
+
+  // +++ Test Suites for Folder Management +++
+  describe("Folder Management", () => {
+    // Test suite for getFolders
+    describe("getFolders", () => {
+      it("should retrieve folders for a space and return folder data", async () => {
+        const params = { space_id: "space_123", archived: false };
+        const mockFolderData = [{ id: "folder1", name: "Folder Alpha" }];
+        const mockResponse = { data: { folders: mockFolderData } }; // API returns { folders: [...] }
+        mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await clickUpService.getFolders(params);
+
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          `/space/${params.space_id}/folder`,
+          { params: { archived: "false" } }
+        );
+        expect(result).toEqual(mockResponse.data); // Service returns the whole object
+      });
+
+      it("should retrieve archived folders if archived is true", async () => {
+        const params = { space_id: "space_123", archived: true };
+        const mockResponse = { data: { folders: [] } }; // Data itself doesn't matter for this check
+        mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+        await clickUpService.getFolders(params);
+
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+          `/space/${params.space_id}/folder`,
+          { params: { archived: "true" } }
+        );
+      });
+
+      it("should throw an error if ClickUp API fails to get folders", async () => {
+        const params = { space_id: "space_123" };
+        mockedAxios.get.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.getFolders(params)).rejects.toThrow(
+          "Failed to retrieve folders from ClickUp"
+        );
+      });
+    });
+
+    // Test suite for createFolder
+    describe("createFolder", () => {
+      it("should create a folder and return folder data", async () => {
+        const params = { space_id: "space_123", name: "New Folder" };
+        const mockResponse = { data: { id: "folder_new", ...params } }; // API returns created folder
+        mockedAxios.post.mockResolvedValueOnce(mockResponse);
+        const { space_id, ...bodyParams } = params;
+
+        const result = await clickUpService.createFolder(params);
+
+        expect(mockedAxios.post).toHaveBeenCalledWith(
+          `/space/${space_id}/folder`,
+          bodyParams
+        );
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails to create a folder", async () => {
+        const params = { space_id: "space_123", name: "New Folder" };
+        mockedAxios.post.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.createFolder(params)).rejects.toThrow(
+          "Failed to create folder in ClickUp"
+        );
+      });
+    });
+
+    // Test suite for getFolder
+    describe("getFolder", () => {
+      it("should retrieve a specific folder and return its data", async () => {
+        const folderId = "folder_abc";
+        const mockResponse = {
+          data: { id: folderId, name: "Specific Folder" },
+        };
+        mockedAxios.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await clickUpService.getFolder(folderId);
+
+        expect(mockedAxios.get).toHaveBeenCalledWith(`/folder/${folderId}`);
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails to get a folder", async () => {
+        const folderId = "folder_abc";
+        mockedAxios.get.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.getFolder(folderId)).rejects.toThrow(
+          "Failed to retrieve folder from ClickUp"
+        );
+      });
+    });
+
+    // Test suite for updateFolder
+    describe("updateFolder", () => {
+      it("should update a folder and return updated folder data", async () => {
+        const params = { folder_id: "folder_xyz", name: "Updated Folder Name" };
+        const mockResponse = {
+          data: { id: params.folder_id, name: params.name },
+        };
+        mockedAxios.put.mockResolvedValueOnce(mockResponse);
+        const { folder_id, ...bodyParams } = params;
+
+        const result = await clickUpService.updateFolder(params);
+
+        expect(mockedAxios.put).toHaveBeenCalledWith(
+          `/folder/${folder_id}`,
+          bodyParams
+        );
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails during folder update", async () => {
+        const params = { folder_id: "folder_xyz", name: "Updated Folder Name" };
+        mockedAxios.put.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.updateFolder(params)).rejects.toThrow(
+          "Failed to update folder in ClickUp"
+        );
+      });
+    });
+
+    // Test suite for deleteFolder
+    describe("deleteFolder", () => {
+      it("should delete a folder and return success response", async () => {
+        const folderId = "folder_todelete";
+        const mockResponse = { data: {} }; // ClickUp often returns empty object
+        mockedAxios.delete.mockResolvedValueOnce(mockResponse);
+
+        const result = await clickUpService.deleteFolder(folderId);
+
+        expect(mockedAxios.delete).toHaveBeenCalledWith(`/folder/${folderId}`);
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should throw an error if ClickUp API fails to delete a folder", async () => {
+        const folderId = "folder_todelete";
+        mockedAxios.delete.mockRejectedValueOnce(new Error("API Error"));
+        await expect(clickUpService.deleteFolder(folderId)).rejects.toThrow(
+          "Failed to delete folder in ClickUp"
+        );
+      });
+    });
+  }); // End of Folder Management tests
+}); // End of ClickUpService tests

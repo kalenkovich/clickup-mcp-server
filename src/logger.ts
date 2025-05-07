@@ -39,13 +39,13 @@ class Logger {
 
   info(message: string, ...args: any[]): void {
     if (this.shouldLog("info")) {
-      console.info(`[${this.getTimestamp()}] INFO: ${message}`, ...args);
+      console.error(`[${this.getTimestamp()}] INFO: ${message}`, ...args);
     }
   }
 
   debug(message: string, ...args: any[]): void {
     if (this.shouldLog("debug")) {
-      console.debug(`[${this.getTimestamp()}] DEBUG: ${message}`, ...args);
+      console.error(`[${this.getTimestamp()}] DEBUG: ${message}`, ...args);
     }
   }
 }

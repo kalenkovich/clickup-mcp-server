@@ -122,3 +122,131 @@ export interface ToolResponse<T = any> {
   }>;
   data?: T;
 }
+
+// +++ Space Types +++
+export interface ClickUpSpaceFeature {
+  enabled: boolean;
+  // Add other properties if needed based on API response
+}
+
+export interface ClickUpSpaceFeatures {
+  due_dates?: ClickUpSpaceFeature;
+  time_tracking?: ClickUpSpaceFeature;
+  tags?: ClickUpSpaceFeature;
+  time_estimates?: ClickUpSpaceFeature;
+  checklists?: ClickUpSpaceFeature;
+  custom_fields?: ClickUpSpaceFeature;
+  remap_dependencies?: ClickUpSpaceFeature;
+  dependency_warning?: ClickUpSpaceFeature;
+  portfolios?: ClickUpSpaceFeature;
+  // Add other features as they appear in API responses
+}
+
+export interface ClickUpSpace {
+  id: string;
+  name: string;
+  private: boolean;
+  color: string | null;
+  avatar: string | null;
+  admin_can_manage?: boolean;
+  archived?: boolean;
+  features?: ClickUpSpaceFeatures;
+  // Add other relevant properties from API response (e.g., statuses, members)
+}
+
+export interface GetSpacesParams {
+  team_id: string; // This is Workspace ID
+  archived?: boolean;
+}
+
+export interface CreateSpaceParams {
+  team_id: string; // Path parameter (Workspace ID)
+  name: string;
+  multiple_assignees?: boolean;
+  features?: {
+    due_dates?: {
+      enabled: boolean;
+      start_date: boolean;
+      remap_due_dates: boolean;
+    };
+    time_tracking?: { enabled: boolean };
+    tags?: { enabled: boolean };
+    time_estimates?: { enabled: boolean };
+    checklists?: { enabled: boolean };
+    custom_fields?: { enabled: boolean };
+    remap_dependencies?: { enabled: boolean };
+    dependency_warning?: { enabled: boolean };
+    portfolios?: { enabled: boolean };
+  };
+}
+
+export interface UpdateSpaceParams {
+  space_id: string; // Path parameter
+  name?: string;
+  color?: string | null;
+  private?: boolean;
+  admin_can_manage?: boolean;
+  archived?: boolean;
+  features?: {
+    due_dates?: {
+      enabled: boolean;
+      start_date: boolean;
+      remap_due_dates: boolean;
+    };
+    time_tracking?: { enabled: boolean };
+    tags?: { enabled: boolean };
+    time_estimates?: { enabled: boolean };
+    checklists?: { enabled: boolean };
+    custom_fields?: { enabled: boolean };
+    remap_dependencies?: { enabled: boolean };
+    dependency_warning?: { enabled: boolean };
+    portfolios?: { enabled: boolean };
+  };
+}
+
+export interface DeleteSpaceParams {
+  space_id: string; // Path parameter
+}
+
+// +++ Folder Types +++
+export interface ClickUpFolder {
+  id: string;
+  name: string;
+  orderindex: number;
+  override_statuses: boolean;
+  hidden: boolean;
+  space: {
+    id: string;
+    name: string;
+    access: boolean; // true if user has access to space
+  };
+  task_count: string; // API returns as string
+  archived: boolean;
+  lists: any[]; // Define ClickUpList interface if not already present and needed here
+  // Add other relevant properties from API response
+}
+
+export interface GetFoldersParams {
+  space_id: string;
+  archived?: boolean;
+}
+
+export interface CreateFolderParams {
+  space_id: string; // Path parameter
+  name: string;
+}
+
+export interface UpdateFolderParams {
+  folder_id: string; // Path parameter
+  name?: string;
+}
+
+export interface DeleteFolderParams {
+  folder_id: string; // Path parameter
+}
+
+// Response type for operations that don't return significant data
+export interface ClickUpSuccessResponse {
+  // ClickUp often returns an empty object {} on success for DELETE/PUT operations.
+  // This can be expanded if specific success indicators are found.
+}

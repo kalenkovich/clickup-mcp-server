@@ -16,6 +16,17 @@ import {
   ClickUpList,
   ClickUpBoard,
   ClickUpTeam,
+  GetSpacesParams,
+  ClickUpSpace,
+  CreateSpaceParams,
+  UpdateSpaceParams,
+  ClickUpSuccessResponse,
+  // Folder Types
+  GetFoldersParams,
+  ClickUpFolder,
+  CreateFolderParams,
+  UpdateFolderParams,
+  // DeleteFolderParams is not directly used by method signature but good to have for completeness
 } from "../types.js"; // Keep ClickUpTeam for API v2 responses
 
 // Remove TokenData interface if not used elsewhere (it was removed from types.ts)
@@ -191,6 +202,182 @@ export class ClickUpService {
         logger.error(`Failed to create board: ${error.message}`);
       }
       throw new Error("Failed to create board in ClickUp");
+    }
+  }
+
+  // +++ Space Management Methods +++
+
+  async getSpaces(
+    params: GetSpacesParams
+  ): Promise<{ spaces: ClickUpSpace[] }> {
+    try {
+      const queryParams: Record<string, any> = {};
+      if (params.archived !== undefined) {
+        queryParams.archived = params.archived.toString();
+      }
+
+      const response = await this.client.get(`/team/${params.team_id}/space`, {
+        params: queryParams,
+      });
+      // API v2 for Get Spaces returns { spaces: [...] }
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to get spaces for team ${params.team_id}: ${error.message}`
+        );
+      }
+      throw new Error("Failed to retrieve spaces from ClickUp");
+    }
+  }
+
+  async createSpace(params: CreateSpaceParams): Promise<ClickUpSpace> {
+    try {
+      // Destructure team_id from params, as it's a path parameter
+      // The rest of params (name, multiple_assignees, features) is the body
+      const { team_id, ...bodyParams } = params;
+
+      const response = await this.client.post(
+        `/team/${team_id}/space`,
+        bodyParams
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to create space in team ${params.team_id}: ${error.message}`
+        );
+      }
+      throw new Error("Failed to create space in ClickUp");
+    }
+  }
+
+  async getSpace(space_id: string): Promise<ClickUpSpace> {
+    try {
+      const response = await this.client.get(`/space/${space_id}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(`Failed to get space ${space_id}: ${error.message}`);
+      }
+      throw new Error("Failed to retrieve space from ClickUp");
+    }
+  }
+
+  async updateSpace(params: UpdateSpaceParams): Promise<ClickUpSpace> {
+    try {
+      const { space_id, ...bodyParams } = params;
+      const response = await this.client.put(`/space/${space_id}`, bodyParams);
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to update space ${params.space_id}: ${error.message}`
+        );
+      }
+      throw new Error("Failed to update space in ClickUp");
+    }
+  }
+
+  async deleteSpace(space_id: string): Promise<ClickUpSuccessResponse> {
+    try {
+      // ClickUp API for DELETE usually returns an empty object {} on success
+      const response = await this.client.delete(`/space/${space_id}`);
+      return response.data; // Should be {} or a specific success indicator
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(`Failed to delete space ${space_id}: ${error.message}`);
+      }
+      throw new Error("Failed to delete space in ClickUp");
+    }
+  }
+
+  // +++ Folder Management Methods +++
+
+  async getFolders(
+    params: GetFoldersParams
+  ): Promise<{ folders: ClickUpFolder[] }> {
+    try {
+      const queryParams: Record<string, any> = {};
+      if (params.archived !== undefined) {
+        queryParams.archived = params.archived.toString();
+      }
+
+      const response = await this.client.get(
+        `/space/${params.space_id}/folder`,
+        {
+          params: queryParams,
+        }
+      );
+      // API v2 for Get Folders returns { folders: [...] }
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to get folders for space ${params.space_id}: ${error.message}`
+        );
+      }
+      throw new Error("Failed to retrieve folders from ClickUp");
+    }
+  }
+
+  async createFolder(params: CreateFolderParams): Promise<ClickUpFolder> {
+    try {
+      const { space_id, ...bodyParams } = params;
+      const response = await this.client.post(
+        `/space/${space_id}/folder`,
+        bodyParams // Contains 'name'
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to create folder in space ${params.space_id}: ${error.message}`
+        );
+      }
+      throw new Error("Failed to create folder in ClickUp");
+    }
+  }
+
+  async getFolder(folder_id: string): Promise<ClickUpFolder> {
+    try {
+      const response = await this.client.get(`/folder/${folder_id}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(`Failed to get folder ${folder_id}: ${error.message}`);
+      }
+      throw new Error("Failed to retrieve folder from ClickUp");
+    }
+  }
+
+  async updateFolder(params: UpdateFolderParams): Promise<ClickUpFolder> {
+    try {
+      const { folder_id, ...bodyParams } = params;
+      const response = await this.client.put(
+        `/folder/${folder_id}`,
+        bodyParams // Contains 'name'
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to update folder ${params.folder_id}: ${error.message}`
+        );
+      }
+      throw new Error("Failed to update folder in ClickUp");
+    }
+  }
+
+  async deleteFolder(folder_id: string): Promise<ClickUpSuccessResponse> {
+    try {
+      const response = await this.client.delete(`/folder/${folder_id}`);
+      return response.data; // Should be {} or a specific success indicator
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(`Failed to delete folder ${folder_id}: ${error.message}`);
+      }
+      throw new Error("Failed to delete folder in ClickUp");
     }
   }
 }

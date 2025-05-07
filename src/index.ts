@@ -10,11 +10,25 @@ import {
 import { ClickUpService } from "./services/clickup.service.js";
 import { config } from "./config/app.config.js";
 import { logger } from "./logger.js";
-import { ClickUpTask, ClickUpBoard } from "./types.js";
+import {
+  ClickUpTask,
+  ClickUpBoard,
+  GetSpacesParams,
+  CreateSpaceParams,
+  UpdateSpaceParams,
+  GetFoldersParams,
+  CreateFolderParams,
+  UpdateFolderParams,
+} from "./types.js";
 
 // Tool Schemas
 const commonIdDescription =
   "The unique identifier for the resource in ClickUp.";
+const teamIdDescription = "The ID of the Workspace (Team) to operate on.";
+const spaceIdDescription = "The ID of the Space to operate on.";
+const folderIdDescription = "The ID of the Folder to operate on.";
+const archivedDescription =
+  "Whether to include archived items (true or false).";
 
 const taskSchema = {
   type: "object",
@@ -135,6 +149,165 @@ const createBoardTool: Tool = {
   },
 };
 
+// +++ Space Tool Definitions +++
+
+const getSpacesTool: Tool = {
+  name: "clickup_get_spaces",
+  description: "Retrieves all Spaces for a given Workspace (Team).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      team_id: { type: "string", description: teamIdDescription },
+      archived: { type: "boolean", description: archivedDescription },
+    },
+    required: ["team_id"],
+  },
+};
+
+const createSpaceTool: Tool = {
+  name: "clickup_create_space",
+  description: "Creates a new Space within a Workspace.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      team_id: { type: "string", description: teamIdDescription },
+      name: { type: "string", description: "Name of the new Space." },
+      multiple_assignees: {
+        type: "boolean",
+        description: "Allow multiple assignees for tasks in this Space.",
+      },
+      features: {
+        type: "object",
+        description:
+          "Object defining features to enable/disable for the Space.",
+      },
+    },
+    required: ["team_id", "name"],
+  },
+};
+
+const getSpaceTool: Tool = {
+  name: "clickup_get_space",
+  description: "Retrieves details for a specific Space.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      space_id: { type: "string", description: spaceIdDescription },
+    },
+    required: ["space_id"],
+  },
+};
+
+const updateSpaceTool: Tool = {
+  name: "clickup_update_space",
+  description: "Updates an existing Space.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      space_id: { type: "string", description: spaceIdDescription },
+      name: { type: "string", description: "New name for the Space." },
+      color: {
+        type: "string",
+        description: "New color for the Space (hex or name).",
+      },
+      private: {
+        type: "boolean",
+        description: "Set Space visibility to private.",
+      },
+      admin_can_manage: {
+        type: "boolean",
+        description: "Allow admins to manage the Space.",
+      },
+      archived: {
+        type: "boolean",
+        description: "Archive or unarchive the Space.",
+      },
+      features: {
+        type: "object",
+        description: "Object defining features to update for the Space.",
+      },
+    },
+    required: ["space_id"],
+  },
+};
+
+const deleteSpaceTool: Tool = {
+  name: "clickup_delete_space",
+  description: "Deletes a Space.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      space_id: { type: "string", description: spaceIdDescription },
+    },
+    required: ["space_id"],
+  },
+};
+
+// +++ Folder Tool Definitions +++
+
+const getFoldersTool: Tool = {
+  name: "clickup_get_folders",
+  description: "Retrieves all Folders within a given Space.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      space_id: { type: "string", description: spaceIdDescription },
+      archived: { type: "boolean", description: archivedDescription },
+    },
+    required: ["space_id"],
+  },
+};
+
+const createFolderTool: Tool = {
+  name: "clickup_create_folder",
+  description: "Creates a new Folder within a Space.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      space_id: { type: "string", description: spaceIdDescription },
+      name: { type: "string", description: "Name of the new Folder." },
+    },
+    required: ["space_id", "name"],
+  },
+};
+
+const getFolderTool: Tool = {
+  name: "clickup_get_folder",
+  description: "Retrieves details for a specific Folder.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      folder_id: { type: "string", description: folderIdDescription },
+    },
+    required: ["folder_id"],
+  },
+};
+
+const updateFolderTool: Tool = {
+  name: "clickup_update_folder",
+  description: "Updates an existing Folder.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      folder_id: { type: "string", description: folderIdDescription },
+      name: { type: "string", description: "New name for the Folder." },
+    },
+    required: ["folder_id", "name"],
+  },
+};
+
+const deleteFolderTool: Tool = {
+  name: "clickup_delete_folder",
+  description: "Deletes a Folder.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      folder_id: { type: "string", description: folderIdDescription },
+    },
+    required: ["folder_id"],
+  },
+};
+
 async function main() {
   logger.info("Starting ClickUp MCP Server...");
 
@@ -160,62 +333,36 @@ async function main() {
 
       try {
         if (!request.params.arguments) {
-          throw new Error("No arguments provided");
+          throw new Error("No arguments provided for tool request.");
         }
 
         switch (request.params.name) {
           case "clickup_create_task": {
-            const args = request.params.arguments as Record<string, unknown>;
+            const args = request.params.arguments as unknown as ClickUpTask;
             if (!args.name || typeof args.name !== "string") {
               throw new Error("Task name is required and must be a string");
             }
             if (!args.list_id || typeof args.list_id !== "string") {
               throw new Error("List ID is required and must be a string");
             }
-            const taskData: ClickUpTask = {
-              name: args.name,
-              list_id: args.list_id,
-              description: args.description as string | undefined,
-              status: args.status as string | undefined,
-              priority: args.priority as number | undefined,
-              assignees: Array.isArray(args.assignees)
-                ? (args.assignees as string[])
-                : undefined,
-              due_date: args.due_date as string | undefined,
-              time_estimate: args.time_estimate as string | undefined,
-              tags: Array.isArray(args.tags)
-                ? (args.tags as string[])
-                : undefined,
-            };
-            const response = await clickUpService.createTask(taskData);
+            const response = await clickUpService.createTask(args);
             return {
               content: [{ type: "text", text: JSON.stringify(response) }],
             };
           }
 
           case "clickup_update_task": {
-            const args = request.params.arguments as Record<string, unknown>;
+            const args = request.params
+              .arguments as unknown as Partial<ClickUpTask> & {
+              task_id: string;
+            };
             if (!args.task_id || typeof args.task_id !== "string") {
               throw new Error("Task ID is required and must be a string");
             }
             const { task_id, ...updateData } = args;
-            const updates: Partial<ClickUpTask> = {
-              name: updateData.name as string | undefined,
-              description: updateData.description as string | undefined,
-              status: updateData.status as string | undefined,
-              priority: updateData.priority as number | undefined,
-              assignees: Array.isArray(updateData.assignees)
-                ? (updateData.assignees as string[])
-                : undefined,
-              due_date: updateData.due_date as string | undefined,
-              time_estimate: updateData.time_estimate as string | undefined,
-              tags: Array.isArray(updateData.tags)
-                ? (updateData.tags as string[])
-                : undefined,
-            };
             const response = await clickUpService.updateTask(
-              task_id as string,
-              updates
+              task_id,
+              updateData
             );
             return {
               content: [{ type: "text", text: JSON.stringify(response) }],
@@ -230,7 +377,9 @@ async function main() {
           }
 
           case "clickup_get_lists": {
-            const args = request.params.arguments as Record<string, unknown>;
+            const args = request.params.arguments as unknown as {
+              folder_id: string;
+            };
             if (!args.folder_id || typeof args.folder_id !== "string") {
               throw new Error("Folder ID is required and must be a string");
             }
@@ -241,19 +390,152 @@ async function main() {
           }
 
           case "clickup_create_board": {
-            const args = request.params.arguments as Record<string, unknown>;
+            const args = request.params.arguments as unknown as ClickUpBoard;
             if (!args.space_id || typeof args.space_id !== "string") {
               throw new Error("Space ID is required and must be a string");
             }
             if (!args.name || typeof args.name !== "string") {
               throw new Error("Board name is required and must be a string");
             }
-            const boardData: ClickUpBoard = {
-              space_id: args.space_id,
-              name: args.name,
-              content: args.content as string | undefined,
+            const response = await clickUpService.createBoard(args);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
             };
-            const response = await clickUpService.createBoard(boardData);
+          }
+
+          // +++ Space Handlers +++
+          case "clickup_get_spaces": {
+            const args = request.params.arguments as unknown as GetSpacesParams;
+            if (!args.team_id || typeof args.team_id !== "string") {
+              throw new Error("Team ID (Workspace ID) is required.");
+            }
+            const response = await clickUpService.getSpaces(args);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_create_space": {
+            const args = request.params
+              .arguments as unknown as CreateSpaceParams;
+            if (!args.team_id || typeof args.team_id !== "string") {
+              throw new Error("Team ID (Workspace ID) is required.");
+            }
+            if (!args.name || typeof args.name !== "string") {
+              throw new Error("Space name is required.");
+            }
+            const response = await clickUpService.createSpace(args);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_get_space": {
+            const args = request.params.arguments as unknown as {
+              space_id: string;
+            };
+            if (!args.space_id || typeof args.space_id !== "string") {
+              throw new Error("Space ID is required.");
+            }
+            const response = await clickUpService.getSpace(args.space_id);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_update_space": {
+            const args = request.params
+              .arguments as unknown as UpdateSpaceParams;
+            if (!args.space_id || typeof args.space_id !== "string") {
+              throw new Error("Space ID is required for update.");
+            }
+            const { space_id, ...updateFields } = args;
+            if (Object.keys(updateFields).length === 0) {
+              throw new Error("No update fields provided for space.");
+            }
+            const response = await clickUpService.updateSpace(args);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_delete_space": {
+            const args = request.params.arguments as unknown as {
+              space_id: string;
+            };
+            if (!args.space_id || typeof args.space_id !== "string") {
+              throw new Error("Space ID is required for deletion.");
+            }
+            const response = await clickUpService.deleteSpace(args.space_id);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          // +++ Folder Handlers +++
+          case "clickup_get_folders": {
+            const args = request.params
+              .arguments as unknown as GetFoldersParams;
+            if (!args.space_id || typeof args.space_id !== "string") {
+              throw new Error("Space ID is required to get folders.");
+            }
+            const response = await clickUpService.getFolders(args);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_create_folder": {
+            const args = request.params
+              .arguments as unknown as CreateFolderParams;
+            if (!args.space_id || typeof args.space_id !== "string") {
+              throw new Error("Space ID is required to create a folder.");
+            }
+            if (!args.name || typeof args.name !== "string") {
+              throw new Error("Folder name is required.");
+            }
+            const response = await clickUpService.createFolder(args);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_get_folder": {
+            const args = request.params.arguments as unknown as {
+              folder_id: string;
+            };
+            if (!args.folder_id || typeof args.folder_id !== "string") {
+              throw new Error("Folder ID is required.");
+            }
+            const response = await clickUpService.getFolder(args.folder_id);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_update_folder": {
+            const args = request.params
+              .arguments as unknown as UpdateFolderParams;
+            if (!args.folder_id || typeof args.folder_id !== "string") {
+              throw new Error("Folder ID is required for update.");
+            }
+            if (!args.name || typeof args.name !== "string") {
+              throw new Error("Folder name is required for update.");
+            }
+            const response = await clickUpService.updateFolder(args);
+            return {
+              content: [{ type: "text", text: JSON.stringify(response) }],
+            };
+          }
+
+          case "clickup_delete_folder": {
+            const args = request.params.arguments as unknown as {
+              folder_id: string;
+            };
+            if (!args.folder_id || typeof args.folder_id !== "string") {
+              throw new Error("Folder ID is required for deletion.");
+            }
+            const response = await clickUpService.deleteFolder(args.folder_id);
             return {
               content: [{ type: "text", text: JSON.stringify(response) }],
             };
@@ -262,15 +544,15 @@ async function main() {
           default:
             throw new Error(`Unknown tool: ${request.params.name}`);
         }
-      } catch (error) {
-        logger.error("Error executing tool:", error);
+      } catch (error: unknown) {
+        logger.error("Error handling tool request:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "An unknown error occurred";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                error: error instanceof Error ? error.message : String(error),
-              }),
+              text: `Error processing ${request.params.name}: ${errorMessage}`,
             },
           ],
         };
@@ -280,7 +562,7 @@ async function main() {
 
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    logger.debug("Received ListToolsRequest");
+    logger.debug("Received list tools request");
     return {
       tools: [
         createTaskTool,
@@ -288,6 +570,16 @@ async function main() {
         getTeamsTool,
         getListsTool,
         createBoardTool,
+        getSpacesTool,
+        createSpaceTool,
+        getSpaceTool,
+        updateSpaceTool,
+        deleteSpaceTool,
+        getFoldersTool,
+        createFolderTool,
+        getFolderTool,
+        updateFolderTool,
+        deleteFolderTool,
       ],
     };
   });

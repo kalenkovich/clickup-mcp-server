@@ -67,6 +67,36 @@ The following MCP tools are currently implemented:
 - `clickup_create_board`: Create a new board in a ClickUp space.
   - Requires: `space_id`, `name`.
 
+### Space Management
+
+- `clickup_get_spaces`: Retrieves all Spaces for a given Workspace (Team).
+  - Requires: `team_id` (Workspace ID).
+  - Optional: `archived` (boolean, defaults to `false`).
+- `clickup_create_space`: Creates a new Space within a Workspace.
+  - Requires: `team_id` (Workspace ID), `name`.
+  - Optional: `multiple_assignees` (boolean), `features` (object with feature flags like `due_dates`, `time_tracking`, etc.).
+- `clickup_get_space`: Retrieves details for a specific Space.
+  - Requires: `space_id`.
+- `clickup_update_space`: Updates an existing Space.
+  - Requires: `space_id`.
+  - Optional: `name`, `color`, `private`, `admin_can_manage`, `archived`, `features`.
+- `clickup_delete_space`: Deletes a Space.
+  - Requires: `space_id`.
+
+### Folder Management
+
+- `clickup_get_folders`: Retrieves all Folders within a given Space.
+  - Requires: `space_id`.
+  - Optional: `archived` (boolean, defaults to `false`).
+- `clickup_create_folder`: Creates a new Folder within a Space.
+  - Requires: `space_id`, `name`.
+- `clickup_get_folder`: Retrieves details for a specific Folder.
+  - Requires: `folder_id`.
+- `clickup_update_folder`: Updates an existing Folder.
+  - Requires: `folder_id`, `name`.
+- `clickup_delete_folder`: Deletes a Folder.
+  - Requires: `folder_id`.
+
 ## Development
 
 1.  Clone the repository:

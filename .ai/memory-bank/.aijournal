@@ -1,0 +1,106 @@
+# Sage's AI Journal for @nazruden/clickup-server
+
+This journal captures key learnings, patterns, and specific instructions encountered during the development of the ClickUp MCP Server.
+
+## Learnings & Patterns
+
+### 1. PowerShell Environment Variable Syntax (Critical for Local Testing)
+
+- **Date:** 2024-07-15
+- **Context:** When running commands like `npx @modelcontextprotocol/inspector ...` or `npm run dev ...` locally in PowerShell, environment variables need to be set using PowerShell syntax.
+- **Pattern:**
+  ```powershell
+  $env:VAR_NAME='value'; your_command --here
+  ```
+- **Incorrect (Bash/Zsh syntax):**
+  ```bash
+  VAR_NAME=value your_command --here
+  ```
+- **Example (from project):**
+  ```powershell
+  $env:CLICKUP_PERSONAL_TOKEN='pk_xxxxxxxx'; npx @modelcontextprotocol/inspector node --loader ts-node/esm src/index.ts
+  ```
+  Or, for `npm run dev` if it needs the token directly (though `dotenv` handles it from `.env`):
+  ```powershell
+  $env:CLICKUP_PERSONAL_TOKEN='pk_xxxxxxxx'; npm run dev
+  ```
+- **Tags:** `powershell`, `environment-variables`, `local-development`, `testing`, `mcp-inspector`
+
+### 2. MCP Inspector and Stdio Logging (Critical for MCP Server Dev)
+
+- **Date:** 2024-07-15
+- **Context:** The `MCP Inspector` (and any MCP client using `StdioServerTransport`) expects **only valid MCP JSON messages** on `stdout` from the server.
+- **Problem:** Any other output (e.g., `console.log`, `logger.debug` from the server if not redirected, or verbose output from tools like `ts-node-dev`) sent to `stdout` will corrupt the MCP message stream, leading to JSON parsing errors in the Inspector (e.g., `SyntaxError: Unexpected token ... is not valid JSON`).
+- **Solution/Mitigation:**
+    - Ensure the application logger (e.g., `winston` in this project) is configured to write to `stderr` or a file when in "production" or "stdio" mode, especially for `debug` and `info` levels if they are too verbose for `stdout`.
+    - For `npm run dev` which uses `ts-node-dev`:
+        - `ts-node-dev` might output its own messages (like compilation status) to `stdout`. Investigate `ts-node-dev` options (e.g., `--quiet`, `--transpile-only --no-cache` with manual restarts for less output, or redirecting its specific output if possible) to minimize non-MCP output.
+        - The command `npx @modelcontextprotocol/inspector node --loader ts-node/esm src/index.ts` directly invokes node with `ts-node/esm` loader, which might be cleaner than `npm run dev` if `ts-node-dev` proves too noisy.
+    - The MCP SDK's `StdioServerTransport` should only send MCP protocol messages via `process.stdout.write()`.
+- **Observed Errors (MCP Inspector):** `SyntaxError: Unexpected end of JSON input`, `SyntaxError: Unexpected token '>', "> @nazrude"... is not valid JSON`, `SyntaxError: Unexpected token 'I', "[INFO]..." is not valid JSON`.
+- **Tags:** `mcp`, `stdio`, `mcp-inspector`, `logging`, `debugging`, `ts-node-dev`, `stdout`, `stderr`
+
+### 3. ClickUp API v2 - Spaces & Folders Endpoints
+
+- **Date:** 2024-07-15
+- **Context:** Reference for implemented Space and Folder management tools. Note that `team_id` in API v2 refers to Workspace ID.
+- **Endpoints Used:**
+    - **Spaces:**
+        - `GET /team/{team_id}/space` (Get Spaces)
+        - `POST /team/{team_id}/space` (Create Space)
+        - `GET /space/{space_id}` (Get Space)
+        - `PUT /space/{space_id}` (Update Space)
+        - `DELETE /space/{space_id}` (Delete Space)
+    - **Folders:**
+        - `GET /space/{space_id}/folder` (Get Folders)
+        - `POST /space/{space_id}/folder` (Create Folder)
+        - `GET /folder/{folder_id}` (Get Folder)
+        - `PUT /folder/{folder_id}` (Update Folder)
+        - `DELETE /folder/{folder_id}` (Delete Folder)
+- **Tags:** `clickup-api`, `api-v2`, `spaces`, `folders`, `reference`
+
+### 4. Jest Mocking for Axios in Service Tests
+
+- **Date:** 2024-07-15
+- **Context:** The pattern for unit testing `ClickUpService` methods that use `axios`.
+- **Pattern (`src/__tests__/services/clickup.service.test.ts`):**
+    1.  `jest.mock("axios");` at the top level.
+    2.  `const mockedAxios = axios as jest.Mocked<typeof axios>;` to get typed mock.
+    3.  In `beforeEach`:
+        - Clear mocks: `mockedAxios.create.mockClear(); mockedAxios.get.mockClear();` etc.
+        - Mock `axios.create()` to return a mocked AxiosInstance:
+          ```typescript
+          const mockAxiosInstance = {
+            defaults: { headers: { common: {} } },
+            interceptors: {
+              request: { use: jest.fn(), eject: jest.fn() },
+              response: { use: jest.fn(), eject: jest.fn() },
+            },
+            get: mockedAxios.get, // Point to top-level mocks
+            post: mockedAxios.post,
+            put: mockedAxios.put,
+            delete: mockedAxios.delete,
+          } as unknown as jest.Mocked<typeof axios>;
+          mockedAxios.create.mockReturnValue(mockAxiosInstance);
+          ```
+    4.  In individual tests, mock specific calls: `mockedAxios.get.mockResolvedValueOnce(mockResponse);` or `mockedAxios.post.mockRejectedValueOnce(new Error("API Error"));`.
+- **Tags:** `jest`, `unit-testing`, `mocking`, `axios`, `typescript`
+
+### 5. TypeScript Type Casting for MCP Tool Arguments
+
+- **Date:** 2024-07-15
+- **Context:** Safely casting `request.params.arguments` (which is `Record<string, unknown> | undefined`) in `src/index.ts` tool handlers to specific parameter types.
+- **Pattern:** Use `as unknown as <SpecificType>`.
+  ```typescript
+  // Example for clickup_get_spaces handler
+  const args = request.params.arguments as unknown as GetSpacesParams;
+  if (!args.team_id || typeof args.team_id !== "string") {
+    throw new Error("Team ID (Workspace ID) is required.");
+  }
+  // Now 'args' can be safely used as GetSpacesParams
+  ```
+- **Reasoning:** This tells TypeScript that the developer is asserting the type after performing necessary runtime checks (like `if (!args.team_id ...)`). Direct casting `as SpecificType` might hide potential errors if the object shape doesn't actually match.
+- **Tags:** `typescript`, `type-casting`, `mcp-sdk`, `tool-handling`
+
+---
+*This journal will be updated as new significant learnings or patterns emerge.* 

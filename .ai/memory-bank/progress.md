@@ -17,6 +17,18 @@
   - `clickup_get_teams`
   - `clickup_get_lists`
   - `clickup_create_board`
+- **MCP Tools (Space Management - Implemented & Unit Tested):**
+  - `clickup_get_spaces`
+  - `clickup_create_space`
+  - `clickup_get_space`
+  - `clickup_update_space`
+  - `clickup_delete_space`
+- **MCP Tools (Folder Management - Implemented & Unit Tested):**
+  - `clickup_get_folders`
+  - `clickup_create_folder`
+  - `clickup_get_folder`
+  - `clickup_update_folder`
+  - `clickup_delete_folder`
 - **Code Cleanup:** Obsolete OAuth service, routes, and associated tests have been removed.
 - **Memory Bank:** Core files updated to reflect current project state (Confidence scores: PB:90%, PC:90%, SP:95%, TC:95%).
   - `projectbrief.md`
@@ -28,14 +40,15 @@
 
 ## 2. What's Left to Build / Implement
 
-- **Implement Space Tools:** Add MCP tool definitions (`src/index.ts`) and `ClickUpService` methods for managing ClickUp Spaces (e.g., get, create, update - based on API v2 capabilities). Unit tests for these new methods.
-- **Implement Folder Tools:** Add MCP tool definitions and `ClickUpService` methods for managing ClickUp Folders (e.g., get, create, update). Unit tests for these new methods.
-- **`.aijournal` / `.cursor/rules`:** Create as beneficial patterns or specific instructions emerge.
+- **`.aijournal` / `.cursor/rules`:** Create as beneficial patterns or specific instructions emerge (e.g., PowerShell env var syntax, MCP stdio logging considerations).
 - **Clarify Python Files:** Minor task to confirm role of `setup.py` and other Python-related files.
 - **Refine Configuration (Optional):** Consider removing `ENCRYPTION_KEY` logic from `src/config/app.config.ts` and `src/security.ts` as it's unused by Personal API Token flow.
+- **Integration Testing:** Perform end-to-end testing of new Space and Folder tools using MCP Inspector.
+- **Address MCP Inspector stdio JSON parsing errors:** Investigate and resolve issues where server logs might be interfering with MCP message parsing in stdio mode.
 
 ## 3. Current Status
 
+- **Phase:** Feature Implementation - Space and Folder tools implemented and unit tested. README updated.
 - **Phase:** Feature Implementation - Core authentication refactoring and testing are complete. Ready to add new features (Space/Folder tools).
 - **Overall Understanding:** Very high confidence in the current architecture, authentication mechanism, and testing setup for existing features.
 

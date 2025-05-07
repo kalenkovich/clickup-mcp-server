@@ -2,46 +2,46 @@
 
 ## 1. Current Focus
 
-- Updating Memory Bank after successful auth refactor and initial testing.
-- Preparing to implement new MCP tools for Spaces and Folders.
+- Finalizing Memory Bank updates after implementing Space and Folder tools.
+- Preparing for integration testing of new tools and addressing MCP Inspector stdio parsing issues.
 
 ## 2. Recent Changes & Activities
 
-- Pivoted auth strategy to Personal API Token.
-- Refactored `src/config/app.config.ts`, `src/types.ts`, and `src/services/clickup.service.ts` for Personal API Token.
-- Successfully tested local server with MCP Inspector using `node --loader ts-node/esm src/index.ts`.
-- Removed OAuth-related code (`OAuthService`, associated routes, old integration tests).
-- Created `.env.test` for test-specific environment variables.
-- Implemented a comprehensive unit test suite for `ClickUpService` in `src/__tests__/services/clickup.service.test.ts`, achieving 100% pass rate for existing tools.
-- Updated `README.md` (previously).
+- **Implemented Space Management Tools:**
+  - Added types to `src/types.ts` (`ClickUpSpace`, `GetSpacesParams`, etc.).
+  - Added service methods to `src/services/clickup.service.ts` (`getSpaces`, `createSpace`, `getSpace`, `updateSpace`, `deleteSpace`).
+  - Defined tools and handlers in `src/index.ts` (`clickup_get_spaces`, etc.).
+  - Added unit tests to `src/__tests__/services/clickup.service.test.ts`.
+- **Implemented Folder Management Tools:**
+  - Added types to `src/types.ts` (`ClickUpFolder`, `GetFoldersParams`, etc.).
+  - Added service methods to `src/services/clickup.service.ts` (`getFolders`, `createFolder`, `getFolder`, `updateFolder`, `deleteFolder`).
+  - Defined tools and handlers in `src/index.ts` (`clickup_get_folders`, etc.).
+  - Added unit tests to `src/__tests__/services/clickup.service.test.ts`.
+- Updated `README.md` with documentation for new Space and Folder tools.
+- Updated `progress.md` to reflect these changes.
+- Previous: Pivoted auth to Personal API Token, refactored relevant files, unit tested initial tools, removed OAuth.
 
 ## 3. Next Steps (Short-Term)
 
-- Finalize Memory Bank updates (this task).
-- Implement MCP tools for ClickUp Spaces (e.g., `clickup_get_spaces`, `clickup_create_space`).
-  - Define tool in `src/index.ts`.
-  - Add method to `ClickUpService`.
-  - Write unit tests for the new service method.
-- Implement MCP tools for ClickUp Folders (e.g., `clickup_get_folders`, `clickup_create_folder`).
-  - Define tool in `src/index.ts`.
-  - Add method to `ClickUpService`.
-  - Write unit tests for the new service method.
-- Optionally, refine `src/config/app.config.ts` and `src/security.ts` to remove `ENCRYPTION_KEY` logic if deemed unnecessary.
-- Create `.aijournal` with key learnings (e.g., MCP Inspector command, PowerShell env var syntax, Jest ESM setup).
+- **Integration Testing:** Perform end-to-end testing of all new Space and Folder tools using MCP Inspector.
+- **Address MCP Inspector stdio JSON parsing errors:** Investigate and resolve issues where server logs (e.g., from `logger.debug` or `ts-node-dev`) might be interfering with MCP message parsing in stdio mode. This is critical for reliable testing with MCP Inspector.
+- **Create `.aijournal**:\*\* Document key learnings from this development cycle (e.g., MCP stdio logging considerations, PowerShell env var syntax if re-encountered, detailed ClickUp API v2 endpoint usage for Spaces/Folders).
+- **Create `.cursor/rules**:\*\* If specific, reusable error patterns or architectural decisions solidify, document them as rules.
+- **Clarify Python Files:** Minor task to confirm role of `setup.py` and other Python-related files.
+- **Refine Configuration (Optional):** Consider removing `ENCRYPTION_KEY` logic from `src/config/app.config.ts` and `src/security.ts` as it's unused.
 
 ## 4. Active Decisions & Considerations
 
-- Authentication uses Personal API Token via `CLICKUP_PERSONAL_TOKEN` env var.
-- ClickUp API v2 is the target.
-- Server communication is primarily Stdio via MCP SDK.
+- All new tools use Personal API Token and target ClickUp API v2.
+- Stdio communication is primary.
 - Unit tests for `ClickUpService` use `axios` mocks.
-- `ENCRYPTION_KEY` logic in config is currently unused by Personal Token flow.
+- **Critical Issue:** Non-MCP output (logs) on stdout is likely breaking MCP Inspector parsing. This needs to be the immediate focus for testing and potentially for how the dev server (`npm run dev`) is configured or how logging is handled in stdio mode.
 
 ## 5. Open Questions & Blockers
 
-- Minor: Confirm role of Python files (`setup.py`) - likely for packaging, not runtime.
-- No major blockers for new tool implementation.
+- **Blocker:** MCP Inspector stdio parsing errors due to server logs on stdout. This hinders further interactive testing.
+- Minor: Confirm role of Python files.
 
 ## Confidence Score: N/A
 
-**Reasoning:** Tracks ongoing work.
+**Reasoning:** Tracks ongoing work and highlights a critical blocker for testing.
