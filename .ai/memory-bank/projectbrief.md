@@ -17,31 +17,35 @@ MCP clients, which include:
 
 ## 4. Scope
 
-- Implementation of an Express.js server adhering to the Model Context Protocol (though primarily run via Stdio as per index.ts).
-- Integration with the ClickUp API v2 using a **Personal API Token** for authentication (prioritizing user setup simplicity).
+- Implementation of a Node.js server adhering to the Model Context Protocol (primarily run via Stdio as per index.ts).
+- Integration with the ClickUp API v2 using a **Personal API Token** for authentication.
 - Provision of a comprehensive and extensible set of MCP tools for interacting with ClickUp.
 - Handling of ClickUp API specifics, such as rate limiting.
 - Configuration management for the ClickUp Personal API Token and server settings.
+- Unit testing for service layer and potentially tool handlers.
 
 ## 5. Key Features
 
-- **Goal: Comprehensive MCP Toolset for ClickUp:** While an initial set of tools is defined (`clickup_create_task`, `clickup_update_task`, etc.), the project aims to expand this to cover the full breadth of the ClickUp API for managing spaces, documents, and other entities. **Priority for next tool expansion: Managing Spaces and Folders.**
-- **MCP Toolset for ClickUp (Initial):**
-  - `clickup_create_task`: Create a new task.
-  - `clickup_update_task`: Update an existing task.
-  - `clickup_get_teams`: Retrieve accessible Workspaces (Teams in v2 API).
-  - `clickup_get_lists`: Get lists in a folder.
-  - `clickup_create_board`: Create a new board.
-- **Authentication:** Uses ClickUp Personal API Token provided via environment variable (`CLICKUP_PERSONAL_TOKEN`) for simplicity.
-- **Rate Limiting:** Manages API request rates to ClickUp (implementation details in `ClickUpService`).
+- **Comprehensive MCP Toolset for ClickUp:** The project provides tools covering a significant portion of ClickUp API v2 functionality.
+- **MCP Toolset Implemented:**
+  - **Base:** `clickup_get_teams`, `clickup_get_lists`, `clickup_create_board`
+  - **Tasks:** `clickup_create_task`, `clickup_update_task`
+  - **Spaces:** `clickup_get_spaces`, `clickup_create_space`, `clickup_get_space`, `clickup_update_space`, `clickup_delete_space`
+  - **Folders:** `clickup_get_folders`, `clickup_create_folder`, `clickup_get_folder`, `clickup_update_folder`, `clickup_delete_folder`
+  - **Custom Fields:** `clickup_get_custom_fields`, `clickup_set_task_custom_field_value`, `clickup_remove_task_custom_field_value`
+  - **Docs:** `clickup_search_docs`, `clickup_create_doc`, `clickup_get_doc_pages`, `clickup_create_doc_page`, `clickup_get_doc_page_content`, `clickup_edit_doc_page_content`
+  - **Views:** `clickup_get_views`, `clickup_create_view`, `clickup_get_view_details`, `clickup_update_view`, `clickup_delete_view`, `clickup_get_view_tasks` (Note: Tool handler tests pending completion).
+- **Authentication:** Uses ClickUp Personal API Token provided via environment variable (`CLICKUP_PERSONAL_TOKEN`).
+- **Rate Limiting:** Manages API request rates to ClickUp (logging in `ClickUpService` interceptor).
+- **Refactored Structure:** Codebase organized by resource type for maintainability.
 
 ## 10. Risks & Assumptions
 
 - **Risk:** Changes in the ClickUp API v2 could require updates. Reliance on v2 might limit future capabilities if v3 becomes necessary.
-- **Risk:** Security implications of users managing and storing their Personal API Token (mitigated slightly if token is encrypted at rest by the server, though current implementation uses ephemeral key if `ENCRYPTION_KEY` not set).
+- **Risk:** Security implications of users managing and storing their Personal API Token.
 - **Assumption:** Users will correctly configure the necessary `CLICKUP_PERSONAL_TOKEN` environment variable.
 - **Assumption:** The `@modelcontextprotocol/sdk` provides stable and sufficient functionalities for stdio communication.
 
-## Confidence Score: 90%
+## Confidence Score: 95%
 
-**Reasoning:** The Personal API Token authentication strategy is fully implemented in `ClickUpService`, including the Axios interceptor. This change simplifies user setup as intended. The core service logic has been successfully unit-tested with mocks, and local end-to-end testing using the MCP Inspector with `src/index.ts` (via `node --loader ts-node/esm`) has confirmed the Stdio communication and tool invocation path work correctly. The previous OAuth code has been removed. The project is now in a solid state for expanding the toolset.
+**Reasoning:** Major refactoring completed successfully. Personal API Token authentication is stable. Tool coverage significantly expanded to include Tasks, Spaces, Folders, Custom Fields, Docs, and Views (service layer). Comprehensive unit tests exist for the service layer of all implemented resources. The main pending item is completing the tool handler tests for Views.

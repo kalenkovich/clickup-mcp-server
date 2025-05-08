@@ -250,3 +250,284 @@ export interface ClickUpSuccessResponse {
   // ClickUp often returns an empty object {} on success for DELETE/PUT operations.
   // This can be expanded if specific success indicators are found.
 }
+
+// +++ Custom Field Types +++
+export interface ClickUpCustomFieldOption {
+  id: string;
+  name: string;
+  color?: string;
+  orderindex?: string | number; // API docs show string, but number is also possible
+  label?: string; // For label type
+}
+
+export interface ClickUpCustomFieldTypeConfig {
+  // For dropdown
+  default?: number | string; // Can be index or option id
+  placeholder?: string;
+  options?: ClickUpCustomFieldOption[];
+  new_drop_down?: boolean; // If creating a new dropdown
+
+  // For currency
+  precision?: number;
+  currency_type?: string;
+
+  // For emoji (rating)
+  code_point?: string;
+  count?: number; // Max rating value (1-5)
+
+  // For labels
+  // Uses 'options' from ClickUpCustomFieldOption where 'name' becomes 'label'
+  // sorting?: 'manual' | 'name_asc' | 'name_desc'; // Not directly modifiable via set field value
+
+  // For progress (automatic/manual)
+  method?: "automatic" | "manual";
+  tracking?: {
+    subtasks?: boolean;
+    assigned_comments?: boolean;
+    checklists?: boolean;
+  };
+  start?: number;
+  end?: number;
+  // current?: number; // 'current' is part of the value, not type_config for manual progress
+
+  // Add other type_config structures as needed
+  // Example: for 'users' or 'tasks' type, it might be empty or have specific flags.
+}
+
+export interface ClickUpCustomField {
+  id: string;
+  name: string;
+  type: string; // e.g., 'text', 'drop_down', 'number', 'labels', 'date', etc.
+  type_config: ClickUpCustomFieldTypeConfig;
+  date_created: string;
+  hide_from_guests: boolean;
+  required?: boolean; // Not always present, but can be
+  // value?: any; // Value is typically part of the task's custom_fields array, not the definition from /field endpoint
+}
+
+export interface GetCustomFieldsParams {
+  list_id: string;
+  // Potentially add folder_id, space_id, team_id later if needed
+}
+
+export interface SetTaskCustomFieldValueParams {
+  task_id: string;
+  field_id: string;
+  value: any;
+  value_options?: {
+    // e.g. for date custom field to include time
+    time?: boolean;
+  };
+}
+
+export interface RemoveTaskCustomFieldValueParams {
+  task_id: string;
+  field_id: string;
+}
+
+// +++ Doc Types +++
+// Based on research, Docs API has limitations and might involve v3 endpoints for some operations.
+// These types are an initial proposal and might need refinement based on actual v2/v3 API responses.
+
+export interface ClickUpDoc {
+  id: string;
+  // team_id?: string; // or workspace_id depending on API version
+  // space_id?: string;
+  // folder_id?: string; // Docs can be homed in various places
+  // list_id?: string;
+  view_id?: string; // Docs can also be views
+  parent_id?: string | null; // ID of the parent (Space, Folder, List, Task)
+  parent_type?: string | null; // Type of the parent ('space', 'folder', 'list', 'task')
+  name: string;
+  tags?: string[];
+  date_created?: string;
+  creator?: number; // user ID
+  settings?: {
+    show_navigation?: boolean;
+    show_comments?: boolean;
+    show_tasks?: boolean;
+    // ... other settings
+  };
+  archived?: boolean;
+  // Content itself might be handled via pages
+}
+
+export interface ClickUpDocPage {
+  id: string;
+  doc_id: string;
+  orderindex: number;
+  title: string; // Or name
+  content?: string | null; // Allow null as API might return this
+  date_created?: string;
+  date_updated?: string;
+}
+
+export interface SearchDocsParams {
+  team_id: string; // Workspace ID
+  query?: string;
+  include_archived?: boolean;
+  // space_ids, folder_ids, list_ids, task_ids for filtering might be possible
+}
+
+export interface CreateDocParams {
+  // Likely parented to space_id, folder_id, list_id, or team_id/workspace_id
+  // For simplicity, let's assume space_id for now as per initial plan, or make it flexible
+  space_id?: string; // If creating in a space
+  team_id?: string; // If creating at workspace level (verify endpoint)
+  parent_id?: string; // Generic parent ID
+  parent_type?: "space" | "folder" | "list" | "task"; // Type of parent
+  name: string;
+  content?: string; // Initial Markdown content for the first page
+  // Other potential options: tags, shared_with, etc.
+}
+
+export interface GetDocPagesParams {
+  doc_id: string;
+}
+
+export interface CreateDocPageParams {
+  doc_id: string;
+  title: string; // Or name
+  content?: string; // Markdown content
+  orderindex?: number; // Optional, for page order
+}
+
+export interface GetDocPageContentParams {
+  // Depending on API, content might come with GetDocPage or need separate call
+  // If separate, this might just be page_id
+  page_id: string;
+}
+
+export interface EditDocPageContentParams {
+  page_id: string;
+  content: string; // Markdown content
+  title?: string; // Optional: if title can also be updated here
+}
+
+// +++ View Types +++
+export type ClickUpViewParentType = "team" | "space" | "folder" | "list"; // Enum for parent type strings used in handlers
+export type ClickUpViewType = "list" | "board" | "calendar" | "gantt"; // Supported view types
+
+// Interfaces for View Settings (based on API docs for Create/Update View)
+export interface ClickUpViewFilterField {
+  field: string; // e.g., 'assignee', 'status', 'dueDate', 'cf_{id}'
+  op: string; // e.g., 'EQ', 'NOT', 'ANY', 'GT', 'LT', 'IS SET'
+  values: any[]; // Can be array of strings, numbers, objects (like for date filters)
+}
+
+export interface ClickUpViewFilterSettings {
+  op: "AND" | "OR";
+  fields: ClickUpViewFilterField[];
+  search?: string; // Optional search string
+  show_closed?: boolean;
+}
+
+export interface ClickUpViewSortField {
+  field: string; // e.g., 'status', 'priority', 'dueDate', 'cf_{id}'
+  dir: number; // 1 for asc, -1 for desc (API might use 1/-1 or string 'asc'/'desc', confirm API response/request format)
+}
+
+export interface ClickUpViewSortSettings {
+  fields: ClickUpViewSortField[];
+}
+
+export interface ClickUpViewGroupingSettings {
+  field: string; // e.g., 'status', 'priority', 'assignee', 'cf_{id}'
+  dir: number; // 1 for asc, -1 for desc
+  collapse?: boolean; // Optional
+}
+
+export interface ClickUpViewColumnField {
+  field: string; // e.g., 'assignee', 'status', 'cf_{id}'
+  // Additional properties like width might exist
+}
+
+export interface ClickUpViewColumnSettings {
+  fields: ClickUpViewColumnField[];
+}
+
+// Interface for the main View object
+export interface ClickUpView {
+  id: string;
+  name: string;
+  type: ClickUpViewType;
+  parent: {
+    id: string | number; // API often uses number for team ID (7), string otherwise
+    type: number; // 7=team, 4=space, 5=folder, 6=list
+  };
+  grouping: ClickUpViewGroupingSettings;
+  divide?: any; // Gantt specific?
+  sorting: ClickUpViewSortSettings;
+  filters: ClickUpViewFilterSettings;
+  columns: ClickUpViewColumnSettings;
+  team_sidebar?: {
+    assignees?: any[];
+    assigned_comments?: boolean;
+    unassigned_tasks?: boolean;
+    // ... other sidebar settings
+  };
+  settings?: {
+    show_task_locations?: boolean;
+    show_subtasks?: number; // e.g., 1 (expanded), 2 (compact), 3 (off)
+    show_closed_subtasks?: boolean;
+    show_assignees?: boolean;
+    show_images?: boolean;
+    collapse_empty_columns?: boolean | null;
+    me_comments?: boolean;
+    me_subtasks?: boolean;
+    me_checklists?: boolean;
+    // ... other view-specific settings
+  };
+  date_created?: string;
+  creator?: number;
+  orderindex?: number;
+  task_count?: number;
+  // Add other fields as needed from API responses
+}
+
+// Parameter types for View tools
+export interface GetViewsParams {
+  parent_id: string;
+  parent_type: ClickUpViewParentType;
+}
+
+export interface CreateViewParams {
+  parent_id: string;
+  parent_type: ClickUpViewParentType;
+  name: string;
+  type: ClickUpViewType;
+  // Making settings optional, user can provide specific parts
+  grouping?: ClickUpViewGroupingSettings;
+  divide?: any;
+  sorting?: ClickUpViewSortSettings;
+  filters?: ClickUpViewFilterSettings;
+  columns?: ClickUpViewColumnSettings;
+  team_sidebar?: any;
+  settings?: any; // Keep general for flexibility
+}
+
+export interface GetViewDetailsParams {
+  view_id: string;
+}
+
+export interface UpdateViewParams {
+  view_id: string;
+  name?: string;
+  // Allow updating individual settings parts
+  grouping?: ClickUpViewGroupingSettings;
+  divide?: any;
+  sorting?: ClickUpViewSortSettings;
+  filters?: ClickUpViewFilterSettings;
+  columns?: ClickUpViewColumnSettings;
+  team_sidebar?: any;
+  settings?: any;
+}
+
+export interface DeleteViewParams {
+  view_id: string;
+}
+
+export interface GetViewTasksParams {
+  view_id: string;
+  page?: number; // For pagination
+}

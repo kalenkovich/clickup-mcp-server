@@ -33,8 +33,9 @@
 6.  Test locally with MCP Inspector:
     - Command: `npx @modelcontextprotocol/inspector node --loader ts-node/esm src/index.ts`
     - Set `CLICKUP_PERSONAL_TOKEN` in the Inspector's environment variable settings for the server process or ensure it's available in the shell where the Inspector is launched if it inherits the environment.
-7.  Build for production: `npm run build`.
-8.  Run in production (via stdio): `npm start` (uses `node dist/index.js`).
+7.  Run unit tests: `npm test`.
+8.  Build for production: `npm run build`.
+9.  Run in production (via stdio): `npm start` (uses `node dist/index.js`).
 
 ## 3. Technical Constraints
 
@@ -42,6 +43,11 @@
 - Dependent on ClickUp API availability (v2) and rate limits.
 - Relies on the `@modelcontextprotocol/sdk` for MCP communication.
 - Requires a valid `CLICKUP_PERSONAL_TOKEN` for operation.
+- **Tool Schema Design:** Tool input schemas must adhere to specific guidelines for compatibility with target LLMs (e.g., Gemini 2.5 Pro experimental):
+  - Avoid numeric enums; use `type: "number"` with detailed descriptions for constraints.
+  - For variable-type inputs (like custom fields), define schema `type` as `"string"` and provide detailed formatting instructions in the description. Handlers must parse the string.
+  - Use strict object definitions (`additionalProperties: false`) where possible.
+  - Prefer explicit, standard JSON schema types.
 
 ## 4. Dependencies (External)
 
@@ -54,18 +60,22 @@
 - **Prettier:** Used for code formatting, configured via `.prettierrc.js` (expected, to be verified) and `package.json` scripts.
 - **TypeScript:** `tsconfig.json`, `tsconfig.build.json`, `tsconfig.test.json` define strict type checking and compiler options.
 
-## 6. Key Configuration Files
+## 6. Key Configuration Files & Directories
 
 - `package.json`: Defines dependencies, scripts, project metadata.
 - `.env` / `.env.test`: For storing `CLICKUP_PERSONAL_TOKEN`, `PORT`, `LOG_LEVEL`, `ENCRYPTION_KEY`.
-- `tsconfig.json`, `tsconfig.build.json`, `tsconfig.test.json`: TypeScript compiler configurations.
+- `tsconfig.*.json`: TypeScript compiler configurations.
 - `jest.config.js`: Jest testing framework configuration.
-- `src/__tests__/setup.ts`: Jest setup file (loads `.env.test`, mocks console).
-- `src/config/app.config.ts`: Effective runtime config source, fully refactored for Personal Token.
-- `src/types.ts`: Type definitions, OAuth types removed.
-- `src/security.ts`: Handles optional encryption of the token at rest (currently unused by Personal Token flow).
 - `src/index.ts`: Main Stdio MCP server entry point.
-- `src/services/clickup.service.ts`: Core logic using Personal Token auth, fully refactored and unit-tested.
+- `src/types.ts`: Central type definitions.
+- `src/config/app.config.ts`: Effective runtime config source.
+- `src/services/clickup.service.ts`: Facade service instantiating resource services.
+- `src/services/resources/*.service.ts`: Resource-specific service logic (API calls).
+- `src/tools/*.tools.ts`: MCP tool definitions and handlers.
+- `src/__tests__/setup.ts`: Jest setup file.
+- `src/__tests__/services/resources/*.service.test.ts`: Unit tests for resource services.
+- `src/__tests__/tools/*.tools.test.ts`: Unit tests for tool handlers (View tests pending).
+- `src/security.ts`: Handles optional encryption of the token at rest (currently unused by Personal Token flow).
 - ESLint/Prettier configuration files (e.g. `.eslintrc.js`, `.prettierrc.js` - to be located).
 
 ## Confidence Score: 95%

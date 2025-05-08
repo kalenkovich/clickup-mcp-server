@@ -102,6 +102,38 @@ This journal captures key learnings, patterns, and specific instructions encount
 - **Reasoning:** This tells TypeScript that the developer is asserting the type after performing necessary runtime checks (like `if (!args.team_id ...)`). Direct casting `as SpecificType` might hide potential errors if the object shape doesn't actually match.
 - **Tags:** `typescript`, `type-casting`, `mcp-sdk`, `tool-handling`
 
+## [YYYY-MM-DD] - Refactoring and Tool Expansion Cycle
+
+**Tags:** #refactoring, #testing, #mocking, #architecture, #mcp
+
+**Learnings:**
+
+1.  **Architecture - Resource-Based Structure:** Refactored the monolithic `ClickUpService`, tool definitions/handlers in `index.ts`, and `clickup.service.test.ts` into resource-specific files (e.g., `task.service.ts`, `task.tools.ts`, `task.service.test.ts`).
+
+    - **Pattern:** Place service logic in `src/services/resources/`, tool definitions/handlers in `src/tools/`, service tests in `src/__tests__/services/resources/`, and tool handler tests in `src/__tests__/tools/`.
+    - **Benefit:** Improved modularity, readability, and maintainability. Smaller file sizes make components easier to understand and test.
+    - **Implementation:** `ClickUpService` now acts as a facade, instantiating resource services and providing accessors. `index.ts` imports tools/handlers from `src/tools/*`.
+
+2.  **Testing - Service Layer vs. Tool Handlers:**
+
+    - Service layer tests (`*.service.test.ts`) focus on mocking the direct external dependency (`axios`) and verifying API call parameters and response handling.
+    - Tool handler tests (`*.tools.test.ts`) focus on mocking the internal dependency (`ClickUpService` and its resource services) and verifying input validation, correct service method calls, and MCP response formatting.
+
+3.  **Testing - Mocking Nested Services in Handlers:** Mocking `ClickUpService` and specifically its resource service getters (like `viewService`) for tool handler tests proved complex.
+
+    - **Challenge:** Ensuring the mocked `ClickUpService` instance was correctly typed and that its mocked getters returned objects containing the specifically defined method mocks (`jest.fn()`) caused persistent linter errors.
+    - **Current (Paused) Approach:** Using `jest.mock()` on the service, instantiating the mocked class, and then directly assigning the mock implementation object to `(mockInstance as any).resourceService = { method1: mockFn1, ... }` seemed the most promising but still hit type issues. Further investigation needed when resuming.
+    - **Key Takeaway:** Testing functions that orchestrate calls across different service instances requires careful mock setup, especially with getters involved.
+
+4.  **MCP - Stdio Logging:** Need to remain vigilant about potential interference between server logs (`console.log`, `logger.debug`, etc.) and MCP message parsing when running via stdio, especially during development (`npm run dev`) and integration testing with MCP Inspector.
+
+    - **Mitigation:** Ensure critical logging goes to stderr or a file, or configure `ts-node-dev`/logging library appropriately if stdout logging is unavoidable during stdio operation.
+
+5.  **ClickUp API V2 Notes:**
+    - Docs API appears less mature/stable than other parts (Search, Page retrieval/editing implemented).
+    - View API allows fetching views by parent (Team, Space, Folder, List) and getting tasks within a view (with pagination).
+    - Custom Field setting requires careful handling of `value` based on field type; `value_options` is used for specifics like date+time.
+
 ---
 
 _This journal will be updated as new significant learnings or patterns emerge._

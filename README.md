@@ -97,6 +97,55 @@ The following MCP tools are currently implemented:
 - `clickup_delete_folder`: Deletes a Folder.
   - Requires: `folder_id`.
 
+### Custom Field Management
+
+- `clickup_get_custom_fields`: Retrieves all accessible Custom Fields for a given List.
+  - Requires: `list_id`.
+- `clickup_set_task_custom_field_value`: Sets the value of a Custom Field on a specific task.
+  - Requires: `task_id`, `field_id`, `value`.
+  - Optional: `value_options` (object, e.g., `{ "time": true }` for date fields).
+- `clickup_remove_task_custom_field_value`: Removes/clears the value of a Custom Field from a specific task.
+  - Requires: `task_id`, `field_id`.
+
+### Doc Management
+
+**Note:** ClickUp's API for Docs (especially v2) has limitations compared to the UI. Content is primarily handled as Markdown text. Advanced formatting, embeds (like videos, Miro boards), columns, tables, comments, and other rich features may not be fully supported or may lose fidelity when managed via these tools.
+
+- `clickup_search_docs`: Searches for Docs within a Workspace (Team).
+  - Requires: `team_id`.
+  - Optional: `query` (string), `include_archived` (boolean).
+- `clickup_create_doc`: Creates a new Doc.
+  - Requires: `name`, and (`space_id` OR `team_id` OR (`parent_id` AND `parent_type`)).
+  - Optional: `content` (initial Markdown for first page), `parent_id`, `parent_type`.
+- `clickup_get_doc_pages`: Retrieves the list of pages within a specific Doc.
+  - Requires: `doc_id`.
+- `clickup_create_doc_page`: Creates a new page within a specific Doc.
+  - Requires: `doc_id`, `title`.
+  - Optional: `content` (Markdown), `orderindex`.
+- `clickup_get_doc_page_content`: Retrieves the content (Markdown) of a specific Doc page.
+  - Requires: `page_id`.
+- `clickup_edit_doc_page_content`: Updates the content and/or title of a specific Doc page.
+  - Requires: `page_id`, `content` (Markdown).
+  - Optional: `title`.
+
+### View Management
+
+- `clickup_get_views`: Get all views for a given parent resource (Team, Space, Folder, or List).
+  - Requires: `parent_id` (ID of the parent resource), `parent_type` (string: "team", "space", "folder", or "list").
+- `clickup_create_view`: Create a new view.
+  - Requires: `parent_id`, `parent_type`, `name` (string: name of the view), `type` (string: type of view, e.g., "list", "board", "calendar", "table", "gantt", "mind_map", "workload", "activity", "map", "doc", "chat", "embed", "form").
+  - Optional: `grouping`, `divide`, `sorting`, `filters`, `columns`, `settings` (objects defining view configurations).
+- `clickup_get_view_details`: Get details for a specific view.
+  - Requires: `view_id`.
+- `clickup_update_view`: Update an existing view.
+  - Requires: `view_id`.
+  - Optional: `name`, `type`, `grouping`, `divide`, `sorting`, `filters`, `columns`, `settings`.
+- `clickup_delete_view`: Delete a view.
+  - Requires: `view_id`.
+- `clickup_get_view_tasks`: Get tasks within a specific view, with optional pagination.
+  - Requires: `view_id`.
+  - Optional: `page` (number: 0-indexed page number for pagination).
+
 ## Development
 
 1.  Clone the repository:

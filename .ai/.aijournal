@@ -1,0 +1,32 @@
+# Project Intelligence Journal: @nazruden/clickup-server
+
+This journal captures key patterns, learnings, and decisions for the project.
+
+---
+
+**Date:** (Current Date - please fill in)
+**Tags:** `llm`, `mcp`, `schema`, `gemini`, `compatibility`, `tool-design`
+
+**Title:** Schema Design Patterns for Gemini 2.5 Pro Experimental Compatibility
+
+**Context:** Encountered recurring "incompatible argument schema" errors when testing MCP tools (`createTaskTool`, `updateTaskTool`, `setTaskCustomFieldValueTool`) with the `gemini-2.5-pro-exp-03-25` model.
+
+**Learning/Pattern:** Specific schema design choices significantly impact compatibility with certain LLMs. For `gemini-2.5-pro-exp-03-25`, the following patterns were necessary:
+
+1.  **Avoid Numeric Enums:** Do not use `enum` constraints on fields with `type: "number"`. Instead, clearly list the valid numeric values and their meanings in the `description`.
+
+    - _Example:_ For the `priority` field (1-4), removing `enum: [1, 2, 3, 4]` and relying on the description resolved the incompatibility.
+
+2.  **Use `type: "string"` for Variable-Type Inputs:** For fields that can accept multiple underlying data types (like custom field values), define the schema `type` as `"string"`.
+
+    - _Requirement:_ The `description` must provide explicit instructions on how the LLM should format different data types (numbers, booleans, arrays, dates with specific formats) _into that string_. JSON string arrays (e.g., `"[\"label1\"]"`) or specific date formats as strings may be required.
+    - _Handler Responsibility:_ The tool handler function must then parse this input string back into the appropriate data type needed by the underlying service/API.
+    - _Example:_ Changing `value.type` from `any` or a type union to `string` in `setTaskCustomFieldValueTool`, combined with detailed formatting instructions in the description, was necessary.
+
+3.  **Prefer Stricter Objects:** Use `additionalProperties: false` for object properties where all allowed sub-properties are known and defined (like `value_options` for custom fields), rather than `additionalProperties: true`.
+
+4.  **Detailed Descriptions:** Always provide comprehensive descriptions for all fields, including examples, expected formats, and context (e.g., clarifying that `assignees` are string representations of numeric User IDs).
+
+**Outcome:** Applying these patterns resolved the schema compatibility errors and enabled successful tool usage with the target Gemini model.
+
+**Action:** Apply these patterns consistently when defining new tool schemas or refining existing ones for this project, especially when targeting Gemini models.
