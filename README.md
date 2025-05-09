@@ -109,7 +109,7 @@ The following MCP tools are currently implemented:
 
 ### Doc Management
 
-**Note:** ClickUp's API for Docs (especially v2) has limitations compared to the UI. Content is primarily handled as Markdown text. Advanced formatting, embeds (like videos, Miro boards), columns, tables, comments, and other rich features may not be fully supported or may lose fidelity when managed via these tools.
+**Note:** ClickUp's API for Docs (especially v2, with some operations now using v3) has limitations. Content is primarily handled as Markdown. Advanced formatting or complex embeds might not be fully supported. Direct document deletion via API is not currently supported by ClickUp's V3 /docs endpoint; manage Doc lifecycle through archiving or page manipulation.
 
 - `clickup_search_docs`: Searches for Docs within a Workspace (Team).
   - Requires: `workspace_id`.

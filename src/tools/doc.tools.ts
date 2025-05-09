@@ -85,9 +85,13 @@ export const getDocPagesTool: Tool = {
   inputSchema: {
     type: "object",
     properties: {
+      workspace_id: {
+        type: "string",
+        description: "The ID of the Workspace (Team ID) where the Doc resides.",
+      },
       doc_id: { type: "string", description: "The ID of the Doc." },
     },
-    required: ["doc_id"],
+    required: ["workspace_id", "doc_id"],
   },
 };
 
@@ -365,3 +369,12 @@ export async function handleEditDocPageContent(
     ],
   };
 }
+
+export const docTools = [
+  searchDocsTool,
+  createDocTool,
+  getDocPagesTool,
+  createDocPageTool,
+  getDocPageContentTool,
+  editDocPageContentTool,
+];

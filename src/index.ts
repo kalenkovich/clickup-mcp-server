@@ -105,7 +105,12 @@ import {
 } from "./tools/view.tools.js";
 // Import NEW tools/handlers
 import { getTeamsTool, handleGetTeams } from "./tools/team.tools.js";
-import { getListsTool, handleGetLists } from "./tools/list.tools.js";
+import {
+  getListsTool,
+  handleGetLists,
+  createListTool,
+  handleCreateList,
+} from "./tools/list.tools.js";
 import { createBoardTool, handleCreateBoard } from "./tools/board.tools.js";
 
 // Tool Schemas - REMOVE taskSchema definition if only used in task.tools.ts
@@ -159,6 +164,7 @@ async function main() {
           updateViewTool,
           deleteViewTool,
           getViewTasksTool,
+          createListTool,
         },
       },
     };
@@ -256,6 +262,8 @@ async function main() {
               return await handleGetLists(clickUpService, args);
             case createBoardTool.name:
               return await handleCreateBoard(clickUpService, args);
+            case createListTool.name:
+              return await handleCreateList(clickUpService, args);
 
             default:
               throw new Error(`Unknown tool: ${request.params.name}`);

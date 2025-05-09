@@ -52,6 +52,7 @@ import { FolderService } from "./resources/folder.service.js";
 import { CustomFieldService } from "./resources/custom-field.service.js";
 import { DocService } from "./resources/doc.service.js";
 import { ViewService } from "./resources/view.service.js";
+import { ListService } from "./resources/list.service.js";
 
 // Remove TokenData interface if not used elsewhere (it was removed from types.ts)
 
@@ -68,6 +69,7 @@ export class ClickUpService {
   private _customFieldService: CustomFieldService;
   private _docService: DocService;
   private _viewService: ViewService;
+  private _listService: ListService;
   // Add other resource services here later
 
   constructor() {
@@ -136,7 +138,10 @@ export class ClickUpService {
     this._customFieldService = new CustomFieldService(this.client);
     this._docService = new DocService(this.client);
     this._viewService = new ViewService(this.client);
+    this._listService = new ListService(this.client);
     // Instantiate other services here later
+
+    logger.info("ClickUpService initialized with all resource services.");
   }
 
   // Public accessors for resource services
@@ -157,6 +162,9 @@ export class ClickUpService {
   }
   public get viewService(): ViewService {
     return this._viewService;
+  }
+  public get listService(): ListService {
+    return this._listService;
   }
   // Add other accessors here later
 
@@ -187,7 +195,7 @@ export class ClickUpService {
     // Corrected return type based on API v2
     try {
       // Interceptor will add auth header
-      const response = await this.client.get("/team", {});
+      const response = await this.client.get("/api/v2/team", {});
       // API v2 returns { teams: [...] }
       return response.data.teams;
     } catch (error) {
@@ -203,7 +211,10 @@ export class ClickUpService {
   async getLists(folderId: string): Promise<ClickUpList[]> {
     try {
       // Interceptor will add auth header
-      const response = await this.client.get(`/folder/${folderId}/list`, {});
+      const response = await this.client.get(
+        `/api/v2/folder/${folderId}/list`,
+        {}
+      );
       return response.data.lists;
     } catch (error) {
       // ... existing error handling ...
@@ -220,7 +231,7 @@ export class ClickUpService {
       // Interceptor will add auth header
       const response = await this.client.post(
         // Ensure space_id is present
-        `/space/${boardData.space_id}/board`,
+        `/api/v2/space/${boardData.space_id}/board`,
         boardData,
         {}
       );
@@ -234,11 +245,6 @@ export class ClickUpService {
     }
   }
 
-  // REMOVE View Methods
+  // REMOVE View Methods if they were here, or ensure class ends correctly
   // async getViews(...) { ... }
-  // async createView(...) { ... }
-  // async getViewDetails(...) { ... }
-  // async updateView(...) { ... }
-  // async deleteView(...) { ... }
-  // async getViewTasks(...) { ... }
 }

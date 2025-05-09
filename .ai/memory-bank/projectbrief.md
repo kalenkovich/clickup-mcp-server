@@ -48,4 +48,4 @@ MCP clients, which include:
 
 ## Confidence Score: 95%
 
-**Reasoning:** Major refactoring completed successfully. Personal API Token authentication is stable. Tool coverage significantly expanded to include Tasks, Spaces, Folders, Custom Fields, Docs, and Views (service layer). Comprehensive unit tests exist for the service layer of all implemented resources. The main pending item is completing the tool handler tests for Views.
+**Reasoning:** Major refactoring completed successfully. Personal API Token authentication is stable. Tool coverage significantly expanded to include Tasks, Spaces, Folders, Custom Fields, Docs, and Views (service layer). Comprehensive unit tests exist for the service layer of all implemented resources. The main pending item is completing the tool handler tests for Views. The removal of `deleteDocTool` was due to an API limitation, not a regression in implemented functionality.

@@ -10,12 +10,14 @@
 - **Authentication:** Uses ClickUp Personal API Token.
 - **Service Layer:** Abstracted ClickUp API interactions for various resources.
 - **Tooling Layer:** MCP tools are defined with input schemas and have corresponding handlers.
+- **API URL Handling:** Standardized base API URL in config (`https://api.clickup.com`) with explicit `/api/v2/` or `/api/v3/` path prefixes in service calls.
 - **Task Management:**
   - `clickup_create_task`
   - `clickup_update_task`
 - **Team & List Management:**
   - `clickup_get_teams`
   - `clickup_get_lists`
+  - `clickup_create_list`
 - **Board Management:**
   - `clickup_create_board`
 - **Space Management (v2 API):**
@@ -41,6 +43,7 @@
   - `clickup_create_doc_page` (v3)
   - `clickup_get_doc_page_content` (v3)
   - `clickup_edit_doc_page_content` (v3)
+  - _Note: `clickup_delete_doc` was removed as the ClickUp V3 API does not provide a direct delete operation for docs via the previously attempted endpoint._
 - **View Management (v2 API, standardized output):**
   - `clickup_get_views`
   - `clickup_create_view`
@@ -56,10 +59,13 @@
 
 **What's Left to Build / Next Steps:**
 
-- Awaiting next user instructions.
+- **Expand Task Management Features:** (User has indicated this as the next area of focus for a future session)
+  - `clickup_get_task` (get a single task by ID)
+  - `clickup_get_tasks` (get tasks for a list)
+  - `clickup_delete_task`
+- Address other missing tool implementations as prioritized (e.g., more List operations, Comments, Tags, etc.).
 - Future considerations (not immediate):
   - Comprehensive integration testing with various MCP clients.
-  - Address any remaining ClickUp API v2 limitations by exploring v3 alternatives for other modules if beneficial.
 
 **Current Status:**
 
@@ -67,14 +73,15 @@
 - Standardization of tool output and View tool test fixes are complete.
 - All unit tests are passing.
 - The server is in a stable state regarding implemented features and their tests.
+- `deleteDocTool` removed after investigation confirmed API limitation.
 
-**Known Issues:**
+**Known Issues & API Limitations Noted:**
 
-- None at the moment.
+- **Doc Deletion:** The ClickUp V3 API (as per available documentation and testing) does not currently offer a direct endpoint to delete a Doc object using `DELETE /api/v3/workspaces/{workspace_id}/docs/{doc_id}`. Docs might bearchivable or pages deletable, but direct Doc entity deletion is not exposed this way.
 
 **Confidence Score:** 95%
 
-- **Reasoning:** All identified unit test failures have been resolved. Core functionality for implemented tools, including recent V3 API migrations for Docs and View tool fixes, is verified at the unit test level. The schema and output standardization efforts have also been completed. Confidence is high for the current feature set. Full end-to-end integration testing with a client would push this higher.
+- **Reasoning:** All identified unit test failures have been resolved. Core functionality for implemented tools, including recent V3 API migrations for Docs and View tool fixes, is verified at the unit test level. The schema and output standardization efforts have also been completed. URL pathing for API calls has been standardized and tested. The removal of `deleteDocTool` is due to an external API limitation and not a regression. Confidence remains high for the current feature set.
 
 ## 1. What Works / Implemented Features
 

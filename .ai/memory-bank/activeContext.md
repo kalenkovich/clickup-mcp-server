@@ -5,9 +5,45 @@
 **Last Updated:** $(date --iso-8601=seconds)
 
 **Current Focus:**
-Finalizing unit test corrections for Doc and View tools after ClickUp API v3 updates and MCP server output standardization. All tests are now passing.
+Concluding current development cycle by updating memory bank and README.md after recent tool testing and removal of unsupported `deleteDocTool`.
 
 **Recent Changes:**
+
+- **Doc Tooling (`doc.tools.ts`, `doc.service.ts`, `index.ts`, `types.ts`):**
+  - Investigated persistent "405 Method Not Allowed" errors for `clickup_delete_doc` tool when targeting ClickUp API v3 `/workspaces/{workspace_id}/docs/{doc_id}` endpoint with `DELETE` method.
+  - Confirmed via ClickUp API documentation that a direct `DELETE` operation for individual docs at this V3 endpoint is not listed as a supported operation.
+  - Removed `deleteDocTool`, its handler `handleDeleteDoc`, the service method `DocService.deleteDoc`, and the `DeleteDocParams` type from the codebase.
+- **API URL Configuration:**
+  - Standardized `clickUpApiUrl` in `src/config/app.config.ts` to `https://api.clickup.com`.
+  - Ensured all service calls in `*.service.ts` files explicitly prepend either `/api/v2/` or `/api/v3/` to their paths for clarity and correct URL construction.
+- **Live Testing:** Conducted several rounds of live testing, creating and deleting Spaces, Folders, Lists, Tasks, Views, and Docs (and Doc Pages), which helped identify and resolve the URL construction issues and the `deleteDoc` API limitation.
+
+**Next Steps:**
+User has indicated that the next major step will be expanding Task features, but this will be for a future session. Current session is concluding with documentation updates.
+
+## 1. Current Focus
+
+- Updating Memory Bank files (`activeContext.md`, `progress.md`, etc.) and `README.md`.
+
+## 2. Recent Changes & Activities
+
+- **`deleteDocTool` Removal:**
+
+  - Investigated "405 Method Not Allowed" for `DELETE /api/v3/workspaces/.../docs/...`.
+  - Confirmed via API documentation that this specific V3 endpoint and method for deleting docs is not supported.
+  - Removed `deleteDocTool` from `doc.tools.ts`.
+  - Removed `handleDeleteDoc` from `doc.tools.ts`.
+  - Removed `DocService.deleteDoc` method from `doc.service.ts`.
+  - Removed `DeleteDocParams` from `types.ts`.
+  - Removed `deleteDocTool` from `serverOptions.capabilities.tools` in `index.ts`.
+  - Removed `deleteDocTool` import from `index.ts`.
+  - Ensured no handler case for `clickup_delete_doc` exists in `index.ts` switch statement or `toolHandlers` map.
+
+- **URL Path Standardization & Testing:**
+
+  - Updated `app.config.ts` to use `clickUpApiUrl: "https://api.clickup.com"`.
+  - Verified and corrected paths in `doc.service.ts` (for V3 calls) and `list.service.ts` (for V2 calls), and older direct calls in `clickup.service.ts` to explicitly include `/api/v2/` or `/api/v3/` prefixes.
+  - Successfully tested `create_list` and other tools after these fixes.
 
 - **Doc Service (`doc.service.ts`) & Tests (`doc.service.test.ts`):**
   - `getDocPages`: Updated to full v3 API logic (endpoint, `workspace_id` validation, error handling).
@@ -53,11 +89,4 @@ Awaiting further instructions from the user. The codebase related to Doc and Vie
   - Affected tools included `clickup_create_task`, `clickup_update_task` (due to shared `taskSchema`), and `clickup_set_task_custom_field_value`.
   - Employed an iterative debugging approach:
     - Stripped down `createTaskTool` schema to minimal required fields (`list_id`, `name`).
-    - Systematically reintroduced fields one by one (`description`, `assignees`, `status`, `priority`, `due_date`, `time_estimate`, `tags`) to pinpoint the incompatible definition.
-  - **Key Findings & Resolutions:**
-    - **Numeric Enums:** The `enum: [1, 2, 3, 4]` for the `priority` field (type `number`) in `taskSchema` was identified as the primary culprit for `createTaskTool` and `updateTaskTool`.
-      - **Solution:** Removed the numeric `enum`. The `type: "number"` was retained, and the `description` was enhanced to explicitly state the valid numeric inputs (1, 2, 3, 4) and their meanings. This pattern was confirmed to resolve the incompatibility.
-    - **`type: "any"`:** The `value: { type: "any" }` in `setTaskCustomFieldValueTool` was problematic.
-      - **Initial Fix Attempt:** Changed to `type: ["string", "number", "boolean", "array"]`. This was still incompatible.
-      - **Successful Solution:** Changed `value` to `type: "string"`. The `description` was extensively updated to instruct the LLM on how to format various underlying data types (numbers, booleans, arrays, specific date formats based on `value_options.time`) into this single string type. This requires the handler function to parse the string back into the appropriate type for the ClickUp service.
-    - **Loose Object Properties:** For `
+    - Systematically reintroduced fields one by one (`description`, `

@@ -2,6 +2,8 @@
 
 ## 1. Technologies Used
 
+**Last Updated:** $(date --iso-8601=seconds)
+
 - **Programming Language:** TypeScript (v5.3.3, from `package.json`)
 - **Runtime Environment:** Node.js (>=14.0.0, from `package.json`)
 - **Core Protocol SDK:** `@modelcontextprotocol/sdk` (v0.6.0, from `package.json`). Used in `src/index.ts` for Stdio server.

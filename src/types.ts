@@ -245,6 +245,64 @@ export interface DeleteFolderParams {
   folder_id: string; // Path parameter
 }
 
+// +++ List Types +++
+export interface ClickUpListSpaceInfo {
+  id: string;
+  name: string;
+  // No 'access' field here, as it's context-dependent in some API responses for list.
+}
+
+export interface ClickUpListFolderInfo {
+  id: string;
+  name: string;
+  hidden: boolean;
+  access: boolean;
+}
+
+export interface ClickUpListStatus {
+  // Simplified status object if needed for list context
+  status: string;
+  color: string;
+  type: string;
+  orderindex: number;
+}
+
+export interface ClickUpListFull {
+  id: string;
+  name: string;
+  orderindex: number;
+  content?: string | null; // Description of the list
+  status?: ClickUpListStatus | null; // Often null for the list itself, or default task status
+  priority?: any | null; // Define specific type if priority object is complex
+  assignee?: any | null; // Define specific type if assignee object is complex
+  task_count?: string; // API often returns as string
+  due_date?: string | null;
+  start_date?: string | null;
+  archived: boolean;
+  override_statuses: boolean;
+  statuses?: ClickUpListStatus[]; // Actual task statuses configured for this list
+  permission_level?: string;
+  space: ClickUpListSpaceInfo;
+  folder: ClickUpListFolderInfo;
+  // Add other fields like 'team_id' (workspace_id) if consistently returned and useful
+}
+
+export interface CreateListParams {
+  parent_id: string; // ID of the folder or space
+  parent_type: "folder" | "space";
+  name: string;
+  content?: string; // List description
+  // ClickUp API for list creation (v2) primarily takes 'name'. Other fields might be set via update or defaults.
+  // Check API documentation if more fields are directly settable on creation.
+  // For now, keeping it simple based on common patterns for POST /folder/{id}/list or POST /space/{id}/list
+  // Optional fields based on typical ClickUp list creation body:
+  due_date?: number; // Timestamp in ms
+  due_date_time?: boolean; // If due_date includes time
+  priority?: number; // 1 (urgent) to 4 (low)
+  assignee?: number; // User ID for default assignee
+  status?: string; // Default status for tasks (string name)
+}
+
 // Response type for operations that don't return significant data
 export interface ClickUpSuccessResponse {
   // ClickUp often returns an empty object {} on success for DELETE/PUT operations.

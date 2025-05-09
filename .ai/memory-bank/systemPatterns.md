@@ -2,6 +2,8 @@
 
 ## 1. System Architecture Overview
 
+**Last Updated:** $(date --iso-8601=seconds)
+
 The system is a Node.js server application built with TypeScript, designed to run via stdio using `@modelcontextprotocol/sdk`. It implements the Model Context Protocol (MCP) to act as a bridge between MCP clients (like AI assistants) and the ClickUp API (v2). It authenticates to ClickUp using a **Personal API Token** configured via environment variables.
 
 ## 2. Key Technical Decisions
