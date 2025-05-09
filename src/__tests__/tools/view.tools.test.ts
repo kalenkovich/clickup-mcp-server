@@ -114,10 +114,14 @@ describe("View Tool Handlers", () => {
       );
 
       expect(mockViewService.getViews).toHaveBeenCalledWith(args);
-      expect(result.data).toEqual(mockViewData);
-      expect(result.content[0].text).toContain(
-        `Retrieved ${mockViewData.length} views`
+      const summaryMessage = `Retrieved ${mockViewData.length} views for ${args.parent_type} ${args.parent_id}.`;
+      expect(result.content[0].text).toContain(summaryMessage);
+      const returnedData = JSON.parse(
+        result.content[0].text.substring(
+          result.content[0].text.indexOf("Details: ") + 9
+        )
       );
+      expect(returnedData).toEqual(mockViewData);
     });
 
     it("should throw error if parent_id or parent_type is missing or invalid", async () => {
@@ -171,10 +175,14 @@ describe("View Tool Handlers", () => {
         args as unknown as Record<string, unknown>
       );
       expect(mockViewService.createView).toHaveBeenCalledWith(args);
-      expect(result.data).toEqual(mockNewView);
-      expect(result.content[0].text).toContain(
-        `Successfully created view: ${mockNewView.name}`
+      const summaryMessage = `Successfully created view: ${mockNewView.name}.`;
+      expect(result.content[0].text).toContain(summaryMessage);
+      const returnedData = JSON.parse(
+        result.content[0].text.substring(
+          result.content[0].text.indexOf("Details: ") + 9
+        )
       );
+      expect(returnedData).toEqual(mockNewView);
     });
 
     it("should throw error for missing required parameters", async () => {
@@ -241,10 +249,14 @@ describe("View Tool Handlers", () => {
       } as unknown as Record<string, unknown>);
 
       expect(mockViewService.getViewDetails).toHaveBeenCalledWith(viewId);
-      expect(result.data).toEqual(mockViewDetailData);
-      expect(result.content[0].text).toContain(
-        `Retrieved details for view: ${mockViewDetailData.name}`
+      const summaryMessage = `Retrieved details for view: ${mockViewDetailData.name}.`;
+      expect(result.content[0].text).toContain(summaryMessage);
+      const returnedData = JSON.parse(
+        result.content[0].text.substring(
+          result.content[0].text.indexOf("Details: ") + 9
+        )
       );
+      expect(returnedData).toEqual(mockViewDetailData);
     });
 
     it("should throw error if view_id is missing", async () => {
@@ -273,34 +285,38 @@ describe("View Tool Handlers", () => {
 
   describe("handleUpdateView", () => {
     it("should call viewService.updateView and return formatted response", async () => {
-      const args: UpdateViewParams = {
-        view_id: "view_uvw",
+      const testArgs = {
+        view_id: "view_to_update",
         name: "Updated View Name",
-        settings: { show_task_locations: false },
       };
+
       const mockUpdatedView: ClickUpView = {
-        id: args.view_id,
-        name: args.name!,
+        id: testArgs.view_id,
+        name: testArgs.name!,
         type: "board",
         parent: { id: "folder_abc", type: 5 },
         grouping: minimalGrouping,
         sorting: minimalSorting,
         filters: minimalFilters,
         columns: minimalColumns,
-        settings: { ...minimalGrouping, ...args.settings },
       };
       mockViewService.updateView.mockResolvedValueOnce(mockUpdatedView);
 
       const result = await handleUpdateView(
         mockClickUpServiceInstance,
-        args as unknown as Record<string, unknown>
+        testArgs as unknown as Record<string, unknown>
       );
 
-      expect(mockViewService.updateView).toHaveBeenCalledWith(args);
-      expect(result.data).toEqual(mockUpdatedView);
-      expect(result.content[0].text).toContain(
-        `Successfully updated view: ${mockUpdatedView.name}`
+      expect(mockViewService.updateView).toHaveBeenCalledWith(testArgs);
+
+      const summaryMessage = `Successfully updated view: ${mockUpdatedView.name}.`;
+      expect(result.content[0].text).toContain(summaryMessage);
+      const returnedData = JSON.parse(
+        result.content[0].text.substring(
+          result.content[0].text.indexOf("Details: ") + 9
+        )
       );
+      expect(returnedData).toEqual(mockUpdatedView);
     });
 
     it("should throw error if view_id is missing", async () => {
@@ -316,25 +332,28 @@ describe("View Tool Handlers", () => {
         handleUpdateView(mockClickUpServiceInstance, {
           view_id: "view_empty_payload",
         } as unknown as Record<string, unknown>)
-      ).rejects.toThrow("No fields provided to update the view.");
+      ).rejects.toThrow(
+        "No fields provided to update the view (at least one updatable field like 'name' is required besides 'view_id')."
+      );
     });
   });
 
   describe("handleDeleteView", () => {
     it("should call viewService.deleteView and return success message", async () => {
-      const args = { view_id: "view_def" };
-      const mockSuccessResponse: ClickUpSuccessResponse = {};
-      mockViewService.deleteView.mockResolvedValueOnce(mockSuccessResponse);
+      const viewId = "view_to_delete";
+      const mockDeleteResponse: ClickUpSuccessResponse = {
+        // Service might return this
+        success: true,
+        message: "View deleted successfully",
+      };
+      mockViewService.deleteView.mockResolvedValueOnce(mockDeleteResponse);
 
-      const result = await handleDeleteView(
-        mockClickUpServiceInstance,
-        args as unknown as Record<string, unknown>
-      );
+      const result = await handleDeleteView(mockClickUpServiceInstance, {
+        view_id: viewId,
+      } as unknown as Record<string, unknown>);
 
-      expect(mockViewService.deleteView).toHaveBeenCalledWith(args.view_id);
-      expect(result.content[0].text).toContain(
-        `Successfully deleted view ID: ${args.view_id}.`
-      );
+      expect(mockViewService.deleteView).toHaveBeenCalledWith(viewId);
+      expect(result.content[0].text).toEqual("View successfully deleted."); // Handler returns this fixed message
     });
 
     it("should throw error if view_id is missing", async () => {
@@ -349,54 +368,13 @@ describe("View Tool Handlers", () => {
 
   describe("handleGetViewTasks", () => {
     it("should call viewService.getViewTasks and return formatted response", async () => {
-      const args: GetViewTasksParams = {
-        view_id: "view_tasks_1",
-        page: 0,
-      };
-      const mockTaskData: { tasks: ClickUpTask[]; last_page: boolean } = {
-        tasks: [
-          {
-            id: "task_1",
-            name: "Task 1 in View",
-            status: "open",
-            url: "url1",
-            list: { id: "list_1" },
-            project: { id: "proj_1" },
-            space: { id: "space_1" },
-            assignees: [],
-            custom_fields: [],
-            date_created: "date",
-            creator: {
-              id: 1,
-              username: "u",
-              email: "e",
-              color: "c",
-              profilePicture: "p",
-            },
-          } as unknown as ClickUpTask,
-          {
-            id: "task_2",
-            name: "Task 2 in View",
-            status: "closed",
-            url: "url2",
-            list: { id: "list_1" },
-            project: { id: "proj_1" },
-            space: { id: "space_1" },
-            assignees: [],
-            custom_fields: [],
-            date_created: "date",
-            creator: {
-              id: 1,
-              username: "u",
-              email: "e",
-              color: "c",
-              profilePicture: "p",
-            },
-          } as unknown as ClickUpTask,
-        ],
-        last_page: true,
-      };
-      mockViewService.getViewTasks.mockResolvedValueOnce(mockTaskData);
+      const args: GetViewTasksParams = { view_id: "view_tasks_abc" };
+      const mockTasksArray: ClickUpTask[] = [
+        { id: "task_1", name: "Task One", status: "open" },
+        { id: "task_2", name: "Task Two", status: "in progress" },
+      ];
+      const mockServiceResponse = { tasks: mockTasksArray, last_page: true };
+      mockViewService.getViewTasks.mockResolvedValueOnce(mockServiceResponse);
 
       const result = await handleGetViewTasks(
         mockClickUpServiceInstance,
@@ -404,10 +382,30 @@ describe("View Tool Handlers", () => {
       );
 
       expect(mockViewService.getViewTasks).toHaveBeenCalledWith(args);
-      expect(result.data).toEqual(mockTaskData);
-      expect(result.content[0].text).toContain(
-        `Retrieved ${mockTaskData.tasks.length} tasks for view ${args.view_id}`
+      const summaryMessage = `Retrieved ${mockTasksArray.length} tasks for view ${args.view_id}. Page: ${args.page !== undefined ? args.page : "all/first"}. Last Page: ${mockServiceResponse.last_page}.`;
+      expect(result.content[0].text).toContain(summaryMessage);
+      const returnedData = JSON.parse(
+        result.content[0].text.substring(
+          result.content[0].text.indexOf("Details: ") + 9
+        )
       );
+      expect(returnedData).toEqual(mockTasksArray);
+    });
+
+    it("should include page parameter if provided", async () => {
+      const args: GetViewTasksParams = { view_id: "view_tasks_xyz", page: 1 };
+      // Mock with the expected structure, even if tasks array is empty for this specific test focus
+      mockViewService.getViewTasks.mockResolvedValueOnce({
+        tasks: [],
+        last_page: true,
+      });
+
+      await handleGetViewTasks(
+        mockClickUpServiceInstance,
+        args as unknown as Record<string, unknown>
+      );
+
+      expect(mockViewService.getViewTasks).toHaveBeenCalledWith(args);
     });
 
     it("should throw error if view_id is missing", async () => {
@@ -421,27 +419,19 @@ describe("View Tool Handlers", () => {
     it("should throw error if page is invalid", async () => {
       const viewId = "view_tasks_page_error";
 
-      // Test case for non-numeric page value
-      // No service mock needed here as validation should happen in the handler before service call
       await expect(
         handleGetViewTasks(mockClickUpServiceInstance, {
           view_id: viewId,
           page: "not-a-number",
         } as unknown as Record<string, unknown>)
-      ).rejects.toThrow(
-        "Page parameter must be a non-negative integer if provided."
-      );
+      ).rejects.toThrow("Page parameter must be a non-negative number.");
 
-      // Test case for negative page value
-      // No service mock needed here
       await expect(
         handleGetViewTasks(mockClickUpServiceInstance, {
           view_id: viewId,
           page: -1,
         } as unknown as Record<string, unknown>)
-      ).rejects.toThrow(
-        "Page parameter must be a non-negative integer if provided."
-      );
+      ).rejects.toThrow("Page parameter must be a non-negative number.");
     });
   });
 

@@ -370,38 +370,49 @@ export interface SearchDocsParams {
 }
 
 export interface CreateDocParams {
-  // Likely parented to space_id, folder_id, list_id, or team_id/workspace_id
-  // For simplicity, let's assume space_id for now as per initial plan, or make it flexible
-  space_id?: string; // If creating in a space
-  team_id?: string; // If creating at workspace level (verify endpoint)
-  parent_id?: string; // Generic parent ID
-  parent_type?: "space" | "folder" | "list" | "task"; // Type of parent
-  name: string;
-  content?: string; // Initial Markdown content for the first page
-  // Other potential options: tags, shared_with, etc.
+  workspace_id: string; // Path parameter, maps to workspaceId (number) in spec
+  name: string; // Required in body
+  parent?: {
+    id: string; // ID of the parent (Doc, Space, Folder, List etc.)
+    type: number; // Numeric type: 4 for Space, 5 for Folder, 6 for List, 7 for Everything, 12 for Workspace.
+  };
+  visibility?: "private" | "workspace" | "public"; // Or just string if API is flexible
+  create_page?: boolean; // Defaults to true as per spec example and common sense
+  // 'content' is removed as it's handled by page creation/editing.
 }
 
 export interface GetDocPagesParams {
+  workspace_id?: string; // Added for v3
   doc_id: string;
 }
 
 export interface CreateDocPageParams {
+  workspace_id: string; // Added: Required for v3 endpoint path
   doc_id: string;
-  title: string; // Or name
+  name: string; // Changed from title to match API spec
   content?: string; // Markdown content
-  orderindex?: number; // Optional, for page order
+  orderindex?: number; // Note: OpenAPI spec for v3 createPage doesn't show orderindex. This might be v2 or handled differently.
+  parent_page_id?: string; // Optional: As per v3 spec
+  sub_title?: string; // Optional: As per v3 spec
+  content_format?: string; // Optional: As per v3 spec (defaults to text/md)
 }
 
 export interface GetDocPageContentParams {
-  // Depending on API, content might come with GetDocPage or need separate call
-  // If separate, this might just be page_id
+  workspace_id: string; // Added: Required for v3 endpoint path
+  doc_id: string; // Added: Required for v3 endpoint path
   page_id: string;
+  content_format?: string; // Optional: As per v3 spec (e.g. text/md)
 }
 
 export interface EditDocPageContentParams {
+  workspace_id: string; // Added: Required for v3 endpoint path
+  doc_id: string; // Added: Required for v3 endpoint path
   page_id: string;
-  content: string; // Markdown content
-  title?: string; // Optional: if title can also be updated here
+  content: string; // Markdown content (maps to API 'content')
+  title?: string; // Optional: if title can also be updated here (maps to API 'name')
+  sub_title?: string; // Optional: As per v3 spec
+  content_edit_mode?: "replace" | "append" | "prepend"; // Optional: As per v3 spec
+  content_format?: string; // Optional: As per v3 spec (defaults to text/md)
 }
 
 // +++ View Types +++

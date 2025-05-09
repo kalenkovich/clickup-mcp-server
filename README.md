@@ -112,37 +112,38 @@ The following MCP tools are currently implemented:
 **Note:** ClickUp's API for Docs (especially v2) has limitations compared to the UI. Content is primarily handled as Markdown text. Advanced formatting, embeds (like videos, Miro boards), columns, tables, comments, and other rich features may not be fully supported or may lose fidelity when managed via these tools.
 
 - `clickup_search_docs`: Searches for Docs within a Workspace (Team).
-  - Requires: `team_id`.
+  - Requires: `workspace_id`.
   - Optional: `query` (string), `include_archived` (boolean).
 - `clickup_create_doc`: Creates a new Doc.
-  - Requires: `name`, and (`space_id` OR `team_id` OR (`parent_id` AND `parent_type`)).
-  - Optional: `content` (initial Markdown for first page), `parent_id`, `parent_type`.
+  - Requires: `workspace_id`, `name`.
+  - Optional: `parent` (object with `id` and `type`), `visibility` (string: "private", "workspace", "public"), `create_page` (boolean).
 - `clickup_get_doc_pages`: Retrieves the list of pages within a specific Doc.
   - Requires: `doc_id`.
 - `clickup_create_doc_page`: Creates a new page within a specific Doc.
-  - Requires: `doc_id`, `title`.
-  - Optional: `content` (Markdown), `orderindex`.
+  - Requires: `workspace_id`, `doc_id`, `name` (page title).
+  - Optional: `content` (Markdown), `orderindex` (number, though v3 API may not use it), `parent_page_id` (string), `sub_title` (string), `content_format` (string).
 - `clickup_get_doc_page_content`: Retrieves the content (Markdown) of a specific Doc page.
-  - Requires: `page_id`.
+  - Requires: `workspace_id`, `doc_id`, `page_id`.
+  - Optional: `content_format` (string).
 - `clickup_edit_doc_page_content`: Updates the content and/or title of a specific Doc page.
-  - Requires: `page_id`, `content` (Markdown).
-  - Optional: `title`.
+  - Requires: `workspace_id`, `doc_id`, `page_id`, `content` (Markdown).
+  - Optional: `title` (string, maps to API 'name'), `sub_title` (string), `content_edit_mode` (string: "replace", "append", "prepend"), `content_format` (string).
 
 ### View Management
 
-- `clickup_get_views`: Get all views for a given parent resource (Team, Space, Folder, or List).
+- `clickup_get_views`: Retrieves all Views for a given parent resource (Team, Space, Folder, or List).
   - Requires: `parent_id` (ID of the parent resource), `parent_type` (string: "team", "space", "folder", or "list").
-- `clickup_create_view`: Create a new view.
-  - Requires: `parent_id`, `parent_type`, `name` (string: name of the view), `type` (string: type of view, e.g., "list", "board", "calendar", "table", "gantt", "mind_map", "workload", "activity", "map", "doc", "chat", "embed", "form").
-  - Optional: `grouping`, `divide`, `sorting`, `filters`, `columns`, `settings` (objects defining view configurations).
-- `clickup_get_view_details`: Get details for a specific view.
+- `clickup_create_view`: Creates a new View within a Team, Space, Folder, or List.
+  - Requires: `parent_id`, `parent_type`, `name` (string: name of the new View), `type` (string: type of the View, e.g., "list", "board", "calendar", "gantt").
+  - Optional: `grouping`, `divide`, `sorting`, `filters`, `columns`, `team_sidebar`, `settings` (objects defining view configurations).
+- `clickup_get_view_details`: Retrieves details for a specific View.
   - Requires: `view_id`.
-- `clickup_update_view`: Update an existing view.
+- `clickup_update_view`: Updates an existing View.
   - Requires: `view_id`.
-  - Optional: `name`, `type`, `grouping`, `divide`, `sorting`, `filters`, `columns`, `settings`.
-- `clickup_delete_view`: Delete a view.
+  - Optional: `name` (string), `grouping`, `divide`, `sorting`, `filters`, `columns`, `team_sidebar`, `settings`.
+- `clickup_delete_view`: Deletes a View.
   - Requires: `view_id`.
-- `clickup_get_view_tasks`: Get tasks within a specific view, with optional pagination.
+- `clickup_get_view_tasks`: Retrieves tasks belonging to a specific View.
   - Requires: `view_id`.
   - Optional: `page` (number: 0-indexed page number for pagination).
 

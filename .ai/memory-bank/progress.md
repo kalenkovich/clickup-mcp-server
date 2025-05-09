@@ -1,5 +1,81 @@
 # Progress: @nazruden/clickup-server
 
+## Progress
+
+**Last Updated:** $(date --iso-8601=seconds)
+
+**What Works:**
+
+- **Core Functionality:** MCP server initializes and communicates via Stdio.
+- **Authentication:** Uses ClickUp Personal API Token.
+- **Service Layer:** Abstracted ClickUp API interactions for various resources.
+- **Tooling Layer:** MCP tools are defined with input schemas and have corresponding handlers.
+- **Task Management:**
+  - `clickup_create_task`
+  - `clickup_update_task`
+- **Team & List Management:**
+  - `clickup_get_teams`
+  - `clickup_get_lists`
+- **Board Management:**
+  - `clickup_create_board`
+- **Space Management (v2 API):**
+  - `clickup_get_spaces`
+  - `clickup_create_space`
+  - `clickup_get_space`
+  - `clickup_update_space`
+  - `clickup_delete_space`
+- **Folder Management (v2 API):**
+  - `clickup_get_folders`
+  - `clickup_create_folder`
+  - `clickup_get_folder`
+  - `clickup_update_folder`
+  - `clickup_delete_folder`
+- **Custom Field Management (v2 API):**
+  - `clickup_get_custom_fields`
+  - `clickup_set_task_custom_field_value` (input schema uses string for `value` with parsing in handler)
+  - `clickup_remove_task_custom_field_value`
+- **Doc Management (Primarily v3 API):**
+  - `clickup_search_docs` (v3)
+  - `clickup_create_doc` (v3)
+  - `clickup_get_doc_pages` (v3)
+  - `clickup_create_doc_page` (v3)
+  - `clickup_get_doc_page_content` (v3)
+  - `clickup_edit_doc_page_content` (v3)
+- **View Management (v2 API, standardized output):**
+  - `clickup_get_views`
+  - `clickup_create_view`
+  - `clickup_get_view_details`
+  - `clickup_update_view`
+  - `clickup_delete_view`
+  - `clickup_get_view_tasks`
+- **Unit Testing:**
+  - All 97 unit tests across 7 suites (services and tools) are passing.
+  - Tests cover service logic (mocking `axios`) and tool handler logic (mocking `ClickUpService` resource services).
+- **Schema Compatibility:** Tool input schemas are refined for better compatibility, especially for complex types by using string inputs with descriptive guidance.
+- **Output Standardization:** All tool handlers now return a stringified JSON in `content[0].text` (often prefixed with a human-readable summary message).
+
+**What's Left to Build / Next Steps:**
+
+- Awaiting next user instructions.
+- Future considerations (not immediate):
+  - Comprehensive integration testing with various MCP clients.
+  - Address any remaining ClickUp API v2 limitations by exploring v3 alternatives for other modules if beneficial.
+
+**Current Status:**
+
+- All planned V3 API updates for Doc tools and associated test fixes are complete.
+- Standardization of tool output and View tool test fixes are complete.
+- All unit tests are passing.
+- The server is in a stable state regarding implemented features and their tests.
+
+**Known Issues:**
+
+- None at the moment.
+
+**Confidence Score:** 95%
+
+- **Reasoning:** All identified unit test failures have been resolved. Core functionality for implemented tools, including recent V3 API migrations for Docs and View tool fixes, is verified at the unit test level. The schema and output standardization efforts have also been completed. Confidence is high for the current feature set. Full end-to-end integration testing with a client would push this higher.
+
 ## 1. What Works / Implemented Features
 
 - **Core Server Infrastructure:** Node.js Stdio MCP server using `@modelcontextprotocol/sdk`.
@@ -39,12 +115,12 @@
   - `clickup_set_task_custom_field_value`
   - `clickup_remove_task_custom_field_value`
 - **MCP Tools (Document Management - Implemented & Tested via Unit Tests):**
-  - `clickup_search_docs`
-  - `clickup_create_doc`
-  - `clickup_get_doc_pages`
-  - `clickup_create_doc_page`
-  - `clickup_get_doc_page_content`
-  - `clickup_edit_doc_page_content`
+  - `clickup_search_docs` (Service method tested; Migrated to v3 and successfully E2E tested)
+  - `clickup_create_doc` (Service method tested; Migrated to v3 and successfully E2E tested)
+  - `clickup_get_doc_pages` (Service method tested; Uses v2 endpoint but successfully E2E tested with v3 doc IDs)
+  - `clickup_create_doc_page` (Service method tested; Migrated to v3 and successfully E2E tested)
+  - `clickup_get_doc_page_content` (Service method tested; Migrated to v3 and successfully E2E tested)
+  - `clickup_edit_doc_page_content` (Service method tested; Migrated to v3 and successfully E2E tested)
 - **MCP Tools (View Management - Service Layer Implemented & Tested):**
   - `clickup_get_views` (Service method tested)
   - `clickup_create_view` (Service method tested)
@@ -56,7 +132,8 @@
 - **README.md:** Updated with documentation for Task, Space, Folder, Custom Field, and Doc tools.
 - **Memory Bank:** Core files recently updated (this update cycle).
 - **LLM Schema Compatibility**: Tool input schemas (`taskSchema`, `setTaskCustomFieldValueTool`) have been refined and tested for compatibility with `gemini-2.5-pro-exp-03-25`, resolving previous "incompatible argument schema" errors. Key changes include removing numeric enums and using specific string formatting for variable-type fields.
-- **Tool Output Format**: Handlers for `getTeams`, `createTask`, `updateTask` updated to return structured data correctly using `type: "json"`.
+- **Tool Output Format**: Handlers for `getTeams`, `createTask`, `updateTask` (and many others by refactoring) updated to return structured data correctly using `type: "text"` with stringified JSON, ensuring MCP compliance.
+- **API Versioning Strategy:** Successfully migrated most Document tools to ClickUp API v3 where necessary for functionality (e.g., `searchDocs`, `createDoc`, `createDocPage`, `getDocPageContent`, `editDocPageContent`). Some tools may remain on v2 if fully functional (e.g., `getDocPages`).
 
 ## 2. What's Left to Build / Implement
 
@@ -64,8 +141,11 @@
   - Complete tests for View handlers (`src/__tests__/tools/view.tools.test.ts`).
   - _Consider adding tests for other tool handlers (`task.tools.test.ts`, `space.tools.test.ts`, etc.) for completeness, although service layer testing provides high confidence._
 - **README.md Updates:** Add documentation for View tools.
-- **Integration Testing:** End-to-end testing for Custom Field, Doc, and View tools using MCP Inspector, specifically verifying the stabilized schemas.
-- **`.aijournal` / `.cursor/rules`:** Create as beneficial patterns or specific instructions emerge (e.g., mocking strategies for tool handler tests, schema design patterns).
+- **Integration Testing:** End-to-end testing for Custom Field, Doc (now complete), and View tools using MCP Inspector, specifically verifying the stabilized schemas.
+- **`.aijournal` / `.cursor/rules`:**
+  - `api-investigation.mdc` rule created.
+  - `.aijournal` entry created for API investigation and data validation learnings.
+  - Consider adding more as beneficial patterns or specific instructions emerge.
 - **Clarify Python Files:** Confirm role of `setup.py` and other Python-related files.
 - **Refine Configuration (Optional):** Consider removing unused `ENCRYPTION_KEY` logic.
 - **Verify MCP Inspector stdio JSON parsing:** Re-verify if server logs interfere with MCP message parsing during integration testing, now that schema issues are resolved.

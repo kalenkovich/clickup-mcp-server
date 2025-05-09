@@ -155,7 +155,7 @@ export async function handleGetViews(
     content: [
       {
         type: "text",
-        text: JSON.stringify(views, null, 2),
+        text: `Retrieved ${views.length} views for ${params.parent_type} ${params.parent_id}. Details: ${JSON.stringify(views, null, 2)}`,
       },
     ],
   };
@@ -194,7 +194,7 @@ export async function handleCreateView(
     content: [
       {
         type: "text",
-        text: JSON.stringify(newView, null, 2),
+        text: `Successfully created view: ${newView.name}. Details: ${JSON.stringify(newView, null, 2)}`,
       },
     ],
   };
@@ -218,7 +218,7 @@ export async function handleGetViewDetails(
     content: [
       {
         type: "text",
-        text: JSON.stringify(viewDetails, null, 2),
+        text: `Retrieved details for view: ${viewDetails.name}. Details: ${JSON.stringify(viewDetails, null, 2)}`,
       },
     ],
   };
@@ -232,19 +232,27 @@ export async function handleUpdateView(
   if (!params.view_id || typeof params.view_id !== "string") {
     throw new Error("View ID is required for update.");
   }
-  const { view_id, ...updateData } = params;
-  if (Object.keys(updateData).length === 0) {
-    throw new Error("No fields provided to update the view.");
+
+  // Validate that there are fields to update besides view_id
+  const updateFields = { ...params };
+  delete (updateFields as Partial<UpdateViewParams>).view_id; // Remove view_id for the check
+
+  if (Object.keys(updateFields).length === 0) {
+    throw new Error(
+      "No fields provided to update the view (at least one updatable field like 'name' is required besides 'view_id')."
+    );
   }
+
   logger.info(
     `Handling tool call: ${updateViewTool.name} for view ${params.view_id}`
   );
+  // ViewService.updateView expects the full UpdateViewParams object as a single argument
   const updatedView = await clickUpService.viewService.updateView(params);
   return {
     content: [
       {
         type: "text",
-        text: JSON.stringify(updatedView, null, 2),
+        text: `Successfully updated view: ${updatedView.name}. Details: ${JSON.stringify(updatedView, null, 2)}`,
       },
     ],
   };
@@ -266,7 +274,7 @@ export async function handleDeleteView(
     content: [
       {
         type: "text",
-        text: `Successfully deleted view ${params.view_id}.`,
+        text: "View successfully deleted.",
       },
     ],
   };
@@ -280,15 +288,27 @@ export async function handleGetViewTasks(
   if (!params.view_id || typeof params.view_id !== "string") {
     throw new Error("View ID is required.");
   }
+  if (params.page !== undefined) {
+    if (
+      typeof params.page !== "number" ||
+      isNaN(params.page) ||
+      params.page < 0
+    ) {
+      throw new Error("Page parameter must be a non-negative number.");
+    }
+  }
+
   logger.info(
-    `Handling tool call: ${getViewTasksTool.name} for view ${params.view_id}, page ${params.page}`
+    `Handling tool call: ${getViewTasksTool.name} for view ${params.view_id}, page: ${params.page}`
   );
-  const tasksResponse = await clickUpService.viewService.getViewTasks(params);
+  const serviceResponse = await clickUpService.viewService.getViewTasks(params);
+  const tasks = serviceResponse.tasks;
+
   return {
     content: [
       {
         type: "text",
-        text: JSON.stringify(tasksResponse, null, 2),
+        text: `Retrieved ${tasks.length} tasks for view ${params.view_id}. Page: ${params.page !== undefined ? params.page : "all/first"}. Last Page: ${serviceResponse.last_page}. Details: ${JSON.stringify(tasks, null, 2)}`,
       },
     ],
   };

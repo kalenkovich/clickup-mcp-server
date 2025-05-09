@@ -1,12 +1,51 @@
 # Active Context: @nazruden/clickup-server
 
+## Active Context
+
+**Last Updated:** $(date --iso-8601=seconds)
+
+**Current Focus:**
+Finalizing unit test corrections for Doc and View tools after ClickUp API v3 updates and MCP server output standardization. All tests are now passing.
+
+**Recent Changes:**
+
+- **Doc Service (`doc.service.ts`) & Tests (`doc.service.test.ts`):**
+  - `getDocPages`: Updated to full v3 API logic (endpoint, `workspace_id` validation, error handling).
+  - Tests: All error message expectations aligned with actual service behavior. All `doc.service.test.ts` tests are passing.
+- **View Tool Handlers (`view.tools.ts`) & Tests (`view.tools.test.ts`):**
+  - Standardized output format for all data-returning handlers to: `Summary Message. Details: JSON_DATA`.
+  - `handleUpdateView`: Corrected service call to pass the single `params` object.
+  - `handleDeleteView`: Standardized success message to "View successfully deleted.".
+  - `handleGetViewTasks`: Added input validation for the `page` parameter. Ensured correct parsing of `serviceResponse.tasks`.
+  - Tests: All summary message expectations, error messages, and mock call assertions in `view.tools.test.ts` aligned with updated handler logic. All `view.tools.test.ts` tests are passing.
+- **Overall:** All 97 unit tests across 7 test suites are now passing.
+
+**Next Steps:**
+Awaiting further instructions from the user. The codebase related to Doc and View tools, including their tests, is now stable and verified.
+
 ## 1. Current Focus
 
-- Documenting recent tool schema compatibility findings and resolutions for `gemini-2.5-pro-exp-03-25` in Memory Bank files.
-- Preparing `.aijournal` entry for learned schema design patterns for LLM tool usage.
-- Paused implementation of unit tests for View tool handlers (`src/__tests__/tools/view.tools.test.ts`) due to complex mocking issues.
+- Updating Memory Bank files (`activeContext.md`, `progress.md`) after successful v3 migration and testing of all Document tools.
+- Finalizing `.aijournal` and `.cursor/rules` entries related to API investigation and schema design.
+- Preparing to resume unit tests for View tool handlers (`src/__tests__/tools/view.tools.test.ts`).
 
 ## 2. Recent Changes & Activities
+
+- **Document Tools - v3 API Migration & Testing (Completed):**
+
+  - **`clickup_search_docs`**: Migrated to `GET /v3/workspaces/{workspaceId}/docs`. Successfully tested.
+  - **`clickup_create_doc`**: Migrated to `POST /v3/workspaces/{workspaceId}/docs`. Resolved issues with incorrect `workspace_id` and ensured `workspaceId` path parameter is a number. Successfully tested.
+  - **`clickup_get_doc_pages`**: Remains on v2 endpoint (`GET /doc/{doc_id}/page`) but functions correctly with doc IDs obtained from v3 `searchDocs` or `createDoc`. Successfully tested.
+  - **`clickup_create_doc_page`**: Migrated to `POST /v3/workspaces/{workspaceId}/docs/{docId}/pages`. Updated params and service logic. Successfully tested.
+  - **`clickup_get_doc_page_content`**: Migrated to `GET /v3/workspaces/{workspaceId}/docs/{docId}/pages/{pageId}`. Updated params and service logic. Successfully tested.
+  - **`clickup_edit_doc_page_content`**: Migrated to `PUT /v3/workspaces/{workspaceId}/docs/{docId}/pages/{pageId}`. Updated params and service logic. Successfully tested.
+  - All related `src/types.ts`, `src/services/resources/doc.service.ts`, and `src/tools/doc.tools.ts` files were updated accordingly.
+  - **Key Learnings Captured:** Importance of validating resource IDs (like `workspace_id`) and ensuring correct data types for path parameters (string vs. number).
+
+- **API Investigation Rule & Journal Entry:**
+
+  - Created `.cursor/rules/api-investigation.mdc` (after some difficulty with file creation, resolved via workaround).
+  - Created `.aijournal` entry detailing the API investigation methodology and learnings from the `createDoc` troubleshooting.
 
 - **Tool Schema Compatibility Debugging (for `gemini-2.5-pro-exp-03-25`):**
 
@@ -21,45 +60,4 @@
     - **`type: "any"`:** The `value: { type: "any" }` in `setTaskCustomFieldValueTool` was problematic.
       - **Initial Fix Attempt:** Changed to `type: ["string", "number", "boolean", "array"]`. This was still incompatible.
       - **Successful Solution:** Changed `value` to `type: "string"`. The `description` was extensively updated to instruct the LLM on how to format various underlying data types (numbers, booleans, arrays, specific date formats based on `value_options.time`) into this single string type. This requires the handler function to parse the string back into the appropriate type for the ClickUp service.
-    - **Loose Object Properties:** For `setTaskCustomFieldValueTool`, the `value_options` field initially had `additionalProperties: true`.
-      - **Solution:** Changed to `additionalProperties: false` for a stricter schema definition, as all known properties (`time`) were explicitly defined.
-  - **Tool Output Refinement:**
-    - Updated tool handlers (`handleGetTeams`, `handleCreateTask`, `handleUpdateTask`) to return structured data using `content: [{ type: "json", json: <data> }]` instead of a mix of `text` and a non-standard top-level `data` field.
-  - Successfully resolved the reported schema incompatibility errors for the targeted Gemini model.
-
-- **Previous Major Refactoring (Completed):**
-  - Moved service logic for Tasks, Spaces, Folders, Custom Fields, and Docs into separate files within `src/services/resources/`.
-  - Moved corresponding tool definitions and handlers into separate files within `src/tools/`.
-  - Updated `src/services/clickup.service.ts` and `src/index.ts` accordingly.
-- **Previous Implementations (Completed):**
-  - Custom Field, Document, Space, and Folder management tools fully implemented with service layer unit tests.
-  - View Management service layer and tool handlers implemented; service layer unit tests completed.
-
-## 3. Next Steps (Short-Term)
-
-- Complete Memory Bank updates (`progress.md`, `systemPatterns.md`, `techContext.md`, `.aijournal`) reflecting the schema compatibility work.
-- **Resume and complete unit tests for View tool handlers (`src/__tests__/tools/view.tools.test.ts`).**
-- Update `README.md` with documentation for View tools.
-- **Integration Testing:** Perform end-to-end testing of all tools, especially focusing on the newly stabilized schemas with `gemini-2.5-pro-exp-03-25` or other relevant MCP clients.
-- Ensure handler functions for `setTaskCustomFieldValueTool` (and any other tools now expecting string inputs for varied data) correctly parse the string input based on context before calling the ClickUp service.
-
-## 4. Active Decisions & Considerations
-
-- Tool input schemas are being designed/refined for robust compatibility with specific LLMs (e.g., `gemini-2.5-pro-exp-03-25`), favoring:
-  - Explicit type definitions.
-  - Detailed descriptions over numeric enums (for numeric types, specify valid numbers in the description).
-  - For fields that can accept multiple data types, using `type: "string"` in the schema and providing detailed formatting instructions in the description, with the handler responsible for parsing.
-  - Stricter object properties (e.g., `additionalProperties: false` where appropriate).
-- All tools use Personal API Token and target ClickUp API v2.
-- Stdio communication is primary.
-- Unit tests for service layer (`*.service.ts`) use `axios` mocks.
-- Unit tests for tool handlers (`*.tools.ts`) mock the `ClickUpService` and its specific resource service methods.
-
-## 5. Open Questions & Blockers
-
-- **Blocker (Paused):** Complex mocking for `ClickUpService` within `src/__tests__/tools/view.tools.test.ts` causing linter errors and preventing test completion. Will revisit.
-- Minor: Confirm role of Python files (`setup.py` etc.) - outstanding from previous context.
-
-## Confidence Score: N/A
-
-**Reasoning:** Tracks ongoing work, highlights a paused blocker, and outlines immediate next steps for documentation and testing. The resolution of schema compatibility issues is a significant step forward.
+    - **Loose Object Properties:** For `

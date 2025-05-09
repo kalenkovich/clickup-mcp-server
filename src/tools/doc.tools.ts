@@ -37,36 +37,45 @@ export const searchDocsTool: Tool = {
 
 export const createDocTool: Tool = {
   name: "clickup_create_doc",
-  description: "Creates a new Doc within a Space or Workspace (Team).",
+  description: "Creates a new Doc within a Workspace.",
   inputSchema: {
     type: "object",
     properties: {
+      workspace_id: {
+        type: "string",
+        description:
+          "The ID of the Workspace (Team ID) where the Doc will be created. This corresponds to the team_id from get_teams.",
+      },
       name: { type: "string", description: "Name of the new Doc." },
-      space_id: {
-        type: "string",
-        description: "ID of the Space to create the Doc in (optional).",
-      },
-      team_id: {
-        type: "string",
+      parent: {
+        type: "object",
         description:
-          "ID of the Workspace (Team) to create the Doc in (optional, use if not in Space).",
+          "Optional: The parent of the new Doc (e.g., another Doc, Space, Folder, List).",
+        properties: {
+          id: {
+            type: "string",
+            description: "ID of the parent resource.",
+          },
+          type: {
+            type: "number",
+            description:
+              "Numeric type of the parent: 4 for Space, 5 for Folder, 6 for List, 7 for Everything (Workspace/Team level), 12 for Workspace (synonymous with 7 in this context often). If creating at workspace root, parent might not be needed or use type 7 or 12 with workspace ID.",
+          },
+        },
+        required: ["id", "type"],
       },
-      parent_id: {
+      visibility: {
         type: "string",
+        enum: ["private", "workspace", "public"],
+        description: "Optional: Visibility of the Doc.",
+      },
+      create_page: {
+        type: "boolean",
         description:
-          "ID of the parent Space, Folder, List, or Task (optional, used with parent_type).",
-      },
-      parent_type: {
-        type: "string",
-        enum: ["space", "folder", "list", "task"],
-        description: "Type of the parent (optional, used with parent_id).",
-      },
-      content: {
-        type: "string",
-        description: "Initial Markdown content for the first page (optional).",
+          "Optional: Whether to automatically create an initial page within the new Doc. Defaults to true.",
       },
     },
-    required: ["name"],
+    required: ["workspace_id", "name"],
   },
 };
 
@@ -88,21 +97,43 @@ export const createDocPageTool: Tool = {
   inputSchema: {
     type: "object",
     properties: {
+      workspace_id: {
+        type: "string",
+        description: "The ID of the Workspace (Team ID) where the Doc resides.",
+      },
       doc_id: {
         type: "string",
         description: "The ID of the Doc to add the page to.",
       },
-      title: { type: "string", description: "The title of the new page." },
+      name: {
+        type: "string",
+        description: "The name (title) of the new page.",
+      },
       content: {
         type: "string",
         description: "Markdown content for the new page (optional).",
       },
       orderindex: {
         type: "number",
-        description: "Position of the page in the Doc structure (optional).",
+        description:
+          "Position of the page in the Doc structure (optional). Note: Not used in v3 create page API.",
+      },
+      parent_page_id: {
+        type: "string",
+        description:
+          "Optional: The ID of the parent page to nest this page under.",
+      },
+      sub_title: {
+        type: "string",
+        description: "Optional: The subtitle of the new page.",
+      },
+      content_format: {
+        type: "string",
+        description:
+          "Optional: The format of the page content (e.g., 'text/md', 'text/plain'). Defaults to 'text/md'.",
       },
     },
-    required: ["doc_id", "title"],
+    required: ["workspace_id", "doc_id", "name"],
   },
 };
 
@@ -112,9 +143,22 @@ export const getDocPageContentTool: Tool = {
   inputSchema: {
     type: "object",
     properties: {
+      workspace_id: {
+        type: "string",
+        description: "The ID of the Workspace (Team ID) where the Doc resides.",
+      },
+      doc_id: {
+        type: "string",
+        description: "The ID of the Doc containing the page.",
+      },
       page_id: { type: "string", description: "The ID of the page." },
+      content_format: {
+        type: "string",
+        description:
+          "Optional: The format to return the page content in (e.g., 'text/md', 'text/plain'). Defaults to 'text/md'.",
+      },
     },
-    required: ["page_id"],
+    required: ["workspace_id", "doc_id", "page_id"],
   },
 };
 
@@ -124,6 +168,14 @@ export const editDocPageContentTool: Tool = {
   inputSchema: {
     type: "object",
     properties: {
+      workspace_id: {
+        type: "string",
+        description: "The ID of the Workspace (Team ID) where the Doc resides.",
+      },
+      doc_id: {
+        type: "string",
+        description: "The ID of the Doc containing the page.",
+      },
       page_id: { type: "string", description: "The ID of the page to update." },
       content: {
         type: "string",
@@ -131,10 +183,26 @@ export const editDocPageContentTool: Tool = {
       },
       title: {
         type: "string",
-        description: "The new title for the page (optional).",
+        description:
+          "The new title for the page (optional, maps to API 'name').",
+      },
+      sub_title: {
+        type: "string",
+        description: "Optional: The new subtitle for the page.",
+      },
+      content_edit_mode: {
+        type: "string",
+        enum: ["replace", "append", "prepend"],
+        description:
+          "Optional: Strategy for updating content (default: replace).",
+      },
+      content_format: {
+        type: "string",
+        description:
+          "Optional: Format of the page content (e.g., 'text/md', default: text/md).",
       },
     },
-    required: ["page_id", "content"],
+    required: ["workspace_id", "doc_id", "page_id", "content"],
   },
 };
 
@@ -166,12 +234,14 @@ export async function handleCreateDoc(
   args: Record<string, unknown>
 ) {
   const params = args as unknown as CreateDocParams;
+  if (!params.workspace_id || typeof params.workspace_id !== "string") {
+    throw new Error("Workspace ID is required to create a doc.");
+  }
   if (!params.name || typeof params.name !== "string") {
     throw new Error("Doc name is required.");
   }
-  // Service layer handles validation for space_id/team_id
   logger.info(
-    `Handling tool call: ${createDocTool.name} with name ${params.name}`
+    `Handling tool call: ${createDocTool.name} for workspace ${params.workspace_id} with name ${params.name}`
   );
   const newDoc = await clickUpService.docService.createDoc(params);
   return {
@@ -211,14 +281,17 @@ export async function handleCreateDocPage(
   args: Record<string, unknown>
 ) {
   const params = args as unknown as CreateDocPageParams;
+  if (!params.workspace_id || typeof params.workspace_id !== "string") {
+    throw new Error("Workspace ID is required for createDocPage tool.");
+  }
   if (!params.doc_id || typeof params.doc_id !== "string") {
     throw new Error("Doc ID is required.");
   }
-  if (!params.title || typeof params.title !== "string") {
-    throw new Error("Page title is required.");
+  if (!params.name || typeof params.name !== "string") {
+    throw new Error("Page name (title) is required.");
   }
   logger.info(
-    `Handling tool call: ${createDocPageTool.name} for doc ${params.doc_id}`
+    `Handling tool call: ${createDocPageTool.name} for doc ${params.doc_id} in workspace ${params.workspace_id}`
   );
   const newPage = await clickUpService.docService.createDocPage(params);
   return {
@@ -236,11 +309,17 @@ export async function handleGetDocPageContent(
   args: Record<string, unknown>
 ) {
   const params = args as unknown as GetDocPageContentParams;
+  if (!params.workspace_id || typeof params.workspace_id !== "string") {
+    throw new Error("Workspace ID is required for getDocPageContent tool.");
+  }
+  if (!params.doc_id || typeof params.doc_id !== "string") {
+    throw new Error("Doc ID is required for getDocPageContent tool.");
+  }
   if (!params.page_id || typeof params.page_id !== "string") {
     throw new Error("Page ID is required.");
   }
   logger.info(
-    `Handling tool call: ${getDocPageContentTool.name} for page ${params.page_id}`
+    `Handling tool call: ${getDocPageContentTool.name} for page ${params.page_id} in doc ${params.doc_id}, workspace ${params.workspace_id}`
   );
   const pageContent = await clickUpService.docService.getDocPageContent(params);
   return {
@@ -261,6 +340,12 @@ export async function handleEditDocPageContent(
   args: Record<string, unknown>
 ) {
   const params = args as unknown as EditDocPageContentParams;
+  if (!params.workspace_id || typeof params.workspace_id !== "string") {
+    throw new Error("Workspace ID is required for editDocPageContent tool.");
+  }
+  if (!params.doc_id || typeof params.doc_id !== "string") {
+    throw new Error("Doc ID is required for editDocPageContent tool.");
+  }
   if (!params.page_id || typeof params.page_id !== "string") {
     throw new Error("Page ID is required.");
   }
@@ -268,7 +353,7 @@ export async function handleEditDocPageContent(
     throw new Error("Content is required to edit a doc page.");
   }
   logger.info(
-    `Handling tool call: ${editDocPageContentTool.name} for page ${params.page_id}`
+    `Handling tool call: ${editDocPageContentTool.name} for page ${params.page_id} in doc ${params.doc_id}, workspace ${params.workspace_id}`
   );
   await clickUpService.docService.editDocPageContent(params);
   return {

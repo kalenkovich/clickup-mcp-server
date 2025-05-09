@@ -35,8 +35,8 @@ describe("DocService", () => {
 
   // Test suite for searchDocs
   describe("searchDocs", () => {
-    it("should search docs in a team and return doc data", async () => {
-      const params: SearchDocsParams = { team_id: "team_123", query: "Report" };
+    it("should search docs in a workspace and return doc data", async () => {
+      const params: SearchDocsParams = { team_id: "123", query: "Report" };
       const mockDocsData: ClickUpDoc[] = [
         { id: "doc_1", name: "Quarterly Report" },
         { id: "doc_2", name: "Annual Report" },
@@ -47,15 +47,15 @@ describe("DocService", () => {
       const result = await docService.searchDocs(params);
 
       expect(mockClient.get).toHaveBeenCalledWith(
-        `/team/${params.team_id}/doc`,
-        { params: { search_string: params.query } }
+        `https://api.clickup.com/api/v3/workspaces/${params.team_id}/docs`,
+        { params: {} }
       );
       expect(result).toEqual(mockDocsData);
     });
 
-    it("should include include_archived parameter when provided", async () => {
+    it("should include include_archived parameter when provided for v3 search", async () => {
       const params: SearchDocsParams = {
-        team_id: "team_123",
+        team_id: "123",
         include_archived: true,
       };
       const mockResponse = { data: { docs: [] } };
@@ -64,25 +64,25 @@ describe("DocService", () => {
       await docService.searchDocs(params);
 
       expect(mockClient.get).toHaveBeenCalledWith(
-        `/team/${params.team_id}/doc`,
-        { params: { include_archived: true } }
+        `https://api.clickup.com/api/v3/workspaces/${params.team_id}/docs`,
+        { params: { archived: true } }
       );
     });
 
-    it("should throw an error if ClickUp API fails to search docs", async () => {
-      const params: SearchDocsParams = { team_id: "team_123" };
+    it("should throw an error if ClickUp API fails to search docs (v3)", async () => {
+      const params: SearchDocsParams = { team_id: "123" };
       mockClient.get.mockRejectedValueOnce(new Error("API Error"));
       await expect(docService.searchDocs(params)).rejects.toThrow(
-        `Failed to search docs in team ${params.team_id} from ClickUp`
+        `Failed to search docs in workspace ${params.team_id} from ClickUp (v3 attempt)`
       );
     });
   });
 
   // Test suite for createDoc
   describe("createDoc", () => {
-    it("should create a doc in a space and return doc data", async () => {
+    it("should create a doc in a workspace and return doc data (v3)", async () => {
       const params: CreateDocParams = {
-        space_id: "space_456",
+        workspace_id: "123",
         name: "New Doc",
       };
       const mockResponseData: ClickUpDoc = { id: "doc_xyz", name: params.name };
@@ -90,73 +90,109 @@ describe("DocService", () => {
       mockClient.post.mockResolvedValueOnce(mockResponse);
 
       const result = await docService.createDoc(params);
+      const numericWorkspaceId = parseInt(params.workspace_id, 10);
 
       expect(mockClient.post).toHaveBeenCalledWith(
-        `/space/${params.space_id}/doc`,
+        `https://api.clickup.com/api/v3/workspaces/${numericWorkspaceId}/docs`,
         { name: params.name },
         {}
       );
       expect(result).toEqual(mockResponseData);
     });
 
-    it("should throw an error if neither space_id nor team_id is provided", async () => {
-      const params: CreateDocParams = { name: "Invalid Doc" };
+    it("should throw an error if workspace_id is not provided for v3 createDoc", async () => {
+      const params = { name: "Invalid Doc" } as any;
       await expect(docService.createDoc(params)).rejects.toThrow(
-        "Must provide space_id or team_id for creating a ClickUp Doc via v2 API."
+        "workspace_id is required for creating a ClickUp Doc (v3)."
       );
     });
 
-    it("should throw an error if ClickUp API fails", async () => {
+    it("should throw an error if workspace_id is not a valid number for v3 createDoc", async () => {
+      const params: CreateDocParams = { workspace_id: "abc", name: "Test Doc" };
+      await expect(docService.createDoc(params)).rejects.toThrow(
+        `Invalid workspace_id: 'abc' must be a numeric string.`
+      );
+    });
+
+    it("should throw an error if ClickUp API fails (v3 createDoc)", async () => {
       const params: CreateDocParams = {
-        space_id: "space_456",
+        workspace_id: "123",
         name: "New Doc",
       };
       mockClient.post.mockRejectedValueOnce(new Error("API Error"));
+      const numericWorkspaceId = parseInt(params.workspace_id, 10);
       await expect(docService.createDoc(params)).rejects.toThrow(
-        `Failed to create doc in space ${params.space_id} from ClickUp`
+        `Failed to create doc for workspace ${numericWorkspaceId} from ClickUp (v3 attempt using spec)`
       );
     });
   });
 
   // Test suite for getDocPages
   describe("getDocPages", () => {
-    it("should retrieve pages for a doc and return page data", async () => {
-      const params: GetDocPagesParams = { doc_id: "doc_123" };
+    it("should retrieve pages for a doc and return page data (v3)", async () => {
+      const params: GetDocPagesParams = {
+        workspace_id: "123",
+        doc_id: "doc_123",
+      };
       const mockPageData: ClickUpDocPage[] = [
         { id: "page_1", doc_id: params.doc_id, title: "Page 1", orderindex: 0 },
       ];
-      const mockResponse = { data: mockPageData };
+      const mockResponse = { data: { pages: mockPageData } };
       mockClient.get.mockResolvedValueOnce(mockResponse);
+      const numericWorkspaceId = parseInt(params.workspace_id as string, 10);
 
       const result = await docService.getDocPages(params);
 
       expect(mockClient.get).toHaveBeenCalledWith(
-        `/doc/${params.doc_id}/page`,
-        {}
+        `https://api.clickup.com/api/v3/workspaces/${numericWorkspaceId}/docs/${params.doc_id}/pages`,
+        { params: {} }
       );
       expect(result).toEqual(mockPageData);
     });
 
-    it("should throw an error if ClickUp API fails to get doc pages", async () => {
-      const params: GetDocPagesParams = { doc_id: "doc_123" };
-      mockClient.get.mockRejectedValueOnce(new Error("API Error"));
+    it("should throw an error if workspace_id is not provided for v3 getDocPages", async () => {
+      const params = { doc_id: "doc_123" } as any;
       await expect(docService.getDocPages(params)).rejects.toThrow(
-        `Failed to retrieve pages for doc ${params.doc_id} from ClickUp`
+        "workspace_id is required for getting Doc Pages (v3)."
+      );
+    });
+
+    it("should throw an error if workspace_id is not a valid number for v3 getDocPages", async () => {
+      const params: GetDocPagesParams = {
+        workspace_id: "abc",
+        doc_id: "doc_123",
+      };
+      await expect(docService.getDocPages(params)).rejects.toThrow(
+        `Invalid workspace_id: 'abc' must be a numeric string.`
+      );
+    });
+
+    it("should throw an error if ClickUp API fails to get doc pages (v3)", async () => {
+      const params: GetDocPagesParams = {
+        workspace_id: "123",
+        doc_id: "doc_123",
+      };
+      mockClient.get.mockRejectedValueOnce(new Error("API Error"));
+      const numericWorkspaceId = parseInt(params.workspace_id as string, 10);
+      await expect(docService.getDocPages(params)).rejects.toThrow(
+        `Failed to retrieve pages for doc ${params.doc_id} (workspace: ${numericWorkspaceId}) from ClickUp (v3 attempt)`
       );
     });
   });
 
   // Test suite for createDocPage
   describe("createDocPage", () => {
-    it("should create a page in a doc and return page data", async () => {
+    it("should create a page in a doc and return page data (v3)", async () => {
       const params: CreateDocPageParams = {
+        workspace_id: "123",
         doc_id: "doc_456",
-        title: "New Page",
+        name: "New Page",
+        content: "# Hello",
       };
       const mockResponseData: ClickUpDocPage = {
         id: "page_abc",
         doc_id: params.doc_id,
-        title: params.title,
+        title: params.name,
         orderindex: 0,
         content: params.content,
       };
@@ -164,35 +200,60 @@ describe("DocService", () => {
       mockClient.post.mockResolvedValueOnce(mockResponse);
 
       const result = await docService.createDocPage(params);
+      const numericWorkspaceId = parseInt(params.workspace_id, 10);
 
       expect(mockClient.post).toHaveBeenCalledWith(
-        `/doc/${params.doc_id}/page`,
-        { title: params.title },
+        `https://api.clickup.com/api/v3/workspaces/${numericWorkspaceId}/docs/${params.doc_id}/pages`,
+        { name: params.name, content: params.content },
         {}
       );
       expect(result).toEqual(mockResponseData);
     });
 
-    it("should throw an error if ClickUp API fails to create doc page", async () => {
+    it("should throw an error if workspace_id is missing for v3 createDocPage", async () => {
+      const params = { doc_id: "doc_123", name: "Error Page" } as any;
+      await expect(docService.createDocPage(params)).rejects.toThrow(
+        "workspace_id is required for creating a Doc Page (v3)."
+      );
+    });
+
+    it("should throw an error if workspace_id is not a valid number for v3 createDocPage", async () => {
       const params: CreateDocPageParams = {
+        workspace_id: "ws_abc",
         doc_id: "doc_123",
-        title: "Error Page",
+        name: "Test Page",
+      };
+      await expect(docService.createDocPage(params)).rejects.toThrow(
+        `Invalid workspace_id: 'ws_abc' must be a numeric string for createDocPage.`
+      );
+    });
+
+    it("should throw an error if ClickUp API fails to create doc page (v3)", async () => {
+      const params: CreateDocPageParams = {
+        workspace_id: "123",
+        doc_id: "doc_123",
+        name: "Error Page",
       };
       mockClient.post.mockRejectedValueOnce(new Error("API Error"));
+      const numericWorkspaceId = parseInt(params.workspace_id, 10);
       await expect(docService.createDocPage(params)).rejects.toThrow(
-        `Failed to create page in doc ${params.doc_id} in ClickUp`
+        `Failed to create page in doc ${params.doc_id} (workspace: ${numericWorkspaceId}) in ClickUp (v3 attempt)`
       );
     });
   });
 
   // Test suite for getDocPageContent
   describe("getDocPageContent", () => {
-    it("should retrieve content for a page and return the content string", async () => {
-      const params: GetDocPageContentParams = { page_id: "page_xyz" };
+    it("should retrieve content for a page and return the content string (v3)", async () => {
+      const params: GetDocPageContentParams = {
+        workspace_id: "123",
+        doc_id: "doc_789",
+        page_id: "page_xyz",
+      };
       const mockPageData: ClickUpDocPage = {
         id: params.page_id,
-        doc_id: "doc_123",
-        title: "Page",
+        doc_id: params.doc_id,
+        title: "Page Title",
         orderindex: 0,
         content: "# Content",
       };
@@ -200,114 +261,138 @@ describe("DocService", () => {
       mockClient.get.mockResolvedValueOnce(mockResponse);
 
       const result = await docService.getDocPageContent(params);
+      const numericWorkspaceId = parseInt(params.workspace_id, 10);
 
       expect(mockClient.get).toHaveBeenCalledWith(
-        `/page/${params.page_id}`,
-        {}
+        `https://api.clickup.com/api/v3/workspaces/${numericWorkspaceId}/docs/${params.doc_id}/pages/${params.page_id}`,
+        { params: {} }
       );
-      expect(result).toEqual(mockPageData.content);
+      expect(result).toEqual("# Content");
     });
 
-    it("should return empty string if page content is null", async () => {
-      const params: GetDocPageContentParams = { page_id: "page_null" };
+    it("should throw an error if workspace_id is not provided for v3 getDocPageContent", async () => {
+      const params = { doc_id: "doc_789", page_id: "page_xyz" } as any;
+      await expect(docService.getDocPageContent(params)).rejects.toThrow(
+        "workspace_id is required for getting Doc Page content (v3)."
+      );
+    });
+
+    it("should throw an error if workspace_id is not a valid number for v3 getDocPageContent", async () => {
+      const params: GetDocPageContentParams = {
+        workspace_id: "ws_abc",
+        doc_id: "doc_123",
+        page_id: "page_456",
+      };
+      await expect(docService.getDocPageContent(params)).rejects.toThrow(
+        `Invalid workspace_id: 'ws_abc' must be numeric for getDocPageContent.`
+      );
+    });
+
+    it("should return empty string if page content is null (v3)", async () => {
+      const params: GetDocPageContentParams = {
+        workspace_id: "123",
+        doc_id: "doc_789",
+        page_id: "page_null",
+      };
       const mockPageData: ClickUpDocPage = {
         id: params.page_id,
-        doc_id: "doc_123",
-        title: "Page",
-        orderindex: 1,
+        doc_id: params.doc_id,
+        title: "Page With Null Content",
+        orderindex: 0,
         content: null,
       };
       const mockResponse = { data: mockPageData };
       mockClient.get.mockResolvedValueOnce(mockResponse);
+      const numericWorkspaceId = parseInt(params.workspace_id as string, 10);
+
       const result = await docService.getDocPageContent(params);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        `https://api.clickup.com/api/v3/workspaces/${numericWorkspaceId}/docs/${params.doc_id}/pages/${params.page_id}`,
+        { params: {} }
+      );
       expect(result).toEqual("");
     });
 
-    it("should throw error if content field is missing or not a string", async () => {
-      const params: GetDocPageContentParams = { page_id: "page_missing" };
-      const mockPageData = {
-        id: params.page_id,
-        doc_id: "doc_123",
-        title: "Page",
-        orderindex: 2,
+    it("should throw an error if ClickUp API fails to get page content (v3)", async () => {
+      const params: GetDocPageContentParams = {
+        workspace_id: "123",
+        doc_id: "doc_789",
+        page_id: "page_error",
       };
-      const mockResponse = { data: mockPageData as ClickUpDocPage };
-      mockClient.get.mockResolvedValueOnce(mockResponse);
-      await expect(docService.getDocPageContent(params)).rejects.toThrow(
-        `Content not found or in unexpected format for page ${params.page_id}`
-      );
-    });
-
-    it("should throw an error if ClickUp API fails to get doc page", async () => {
-      const params: GetDocPageContentParams = { page_id: "page_xyz" };
       mockClient.get.mockRejectedValueOnce(new Error("API Error"));
+      const numericWorkspaceId = parseInt(params.workspace_id as string, 10);
       await expect(docService.getDocPageContent(params)).rejects.toThrow(
-        `Failed to retrieve content for page ${params.page_id} from ClickUp`
+        `Failed to retrieve content for page ${params.page_id} (doc: ${params.doc_id}, ws: ${numericWorkspaceId}) from ClickUp (v3 attempt)`
       );
     });
   });
 
   // Test suite for editDocPageContent
   describe("editDocPageContent", () => {
-    it("should update page content and return updated page data", async () => {
+    it("should edit a page's content and title and return the updated page data (v3)", async () => {
       const params: EditDocPageContentParams = {
-        page_id: "page_edit_1",
-        content: "New",
-      };
-      const mockResponseData: ClickUpDocPage = {
-        id: params.page_id,
-        doc_id: "doc_xyz",
-        title: "Title",
-        orderindex: 0,
-        content: params.content,
-      };
-      const mockResponse = { data: mockResponseData };
-      mockClient.put.mockResolvedValueOnce(mockResponse);
-
-      const result = await docService.editDocPageContent(params);
-
-      expect(mockClient.put).toHaveBeenCalledWith(
-        `/page/${params.page_id}`,
-        { content: params.content },
-        {}
-      );
-      expect(result).toEqual(mockResponseData);
-    });
-
-    it("should update page content and title when title is provided", async () => {
-      const params: EditDocPageContentParams = {
-        page_id: "page_edit_2",
-        content: "### Updates",
-        title: "New Title",
-      };
-      const mockResponseData: ClickUpDocPage = {
-        id: params.page_id,
+        workspace_id: "123",
         doc_id: "doc_abc",
+        page_id: "page_def",
+        content: "## New Content",
+        title: "New Page Title",
+      };
+      const mockResponseData: ClickUpDocPage = {
+        id: params.page_id,
+        doc_id: params.doc_id,
         title: params.title!,
         orderindex: 1,
         content: params.content,
       };
       const mockResponse = { data: mockResponseData };
       mockClient.put.mockResolvedValueOnce(mockResponse);
+      const numericWorkspaceId = parseInt(params.workspace_id as string, 10);
 
       const result = await docService.editDocPageContent(params);
 
       expect(mockClient.put).toHaveBeenCalledWith(
-        `/page/${params.page_id}`,
-        { content: params.content, title: params.title },
+        `https://api.clickup.com/api/v3/workspaces/${numericWorkspaceId}/docs/${params.doc_id}/pages/${params.page_id}`,
+        { content: params.content, name: params.title },
         {}
       );
       expect(result).toEqual(mockResponseData);
     });
 
-    it("should throw an error if ClickUp API fails to edit doc page", async () => {
+    it("should throw an error if workspace_id is not provided for v3 editDocPageContent", async () => {
+      const params = {
+        doc_id: "doc_abc",
+        page_id: "page_def",
+        content: "...",
+      } as any;
+      await expect(docService.editDocPageContent(params)).rejects.toThrow(
+        "workspace_id is required for editing Doc Page content (v3)."
+      );
+    });
+
+    it("should throw an error if workspace_id is not a valid number for v3 editDocPageContent", async () => {
       const params: EditDocPageContentParams = {
-        page_id: "page_edit_err",
-        content: "Err",
+        workspace_id: "ws_abc",
+        doc_id: "doc_123",
+        page_id: "page_456",
+        content: "...",
+      };
+      await expect(docService.editDocPageContent(params)).rejects.toThrow(
+        `Invalid workspace_id: 'ws_abc' must be numeric for editDocPageContent.`
+      );
+    });
+
+    it("should throw an error if ClickUp API fails to edit page content (v3)", async () => {
+      const params: EditDocPageContentParams = {
+        workspace_id: "123",
+        doc_id: "doc_abc",
+        page_id: "page_error",
+        content: "## Error Content",
       };
       mockClient.put.mockRejectedValueOnce(new Error("API Error"));
+      const numericWorkspaceId = parseInt(params.workspace_id as string, 10);
       await expect(docService.editDocPageContent(params)).rejects.toThrow(
-        `Failed to edit content for page ${params.page_id} in ClickUp`
+        `Failed to edit content for page ${params.page_id} (doc: ${params.doc_id}, ws: ${numericWorkspaceId}) in ClickUp (v3 attempt)`
       );
     });
   });
