@@ -1,8 +1,12 @@
 # ClickUp MCP Server
 
-A Model Context Protocol server implementation for ClickUp integration, enabling AI assistants to interact with ClickUp workspaces using **ClickUp API v2**.
+[![smithery badge](https://smithery.ai/badge/@Nazruden/clickup-mcp-server)](https://smithery.ai/server/@Nazruden/clickup-mcp-server)
+
+A Model Context Protocol server implementation for ClickUp integration, enabling AI assistants to interact with ClickUp workspaces.
 
 This server runs via **Stdio** as per the MCP specification when invoked by an MCP client.
+
+<a href="https://glama.ai/mcp/servers/9a7p2exf6u"><img width="380" height="200" src="https://glama.ai/mcp/servers/9a7p2exf6u/badge" alt="ClickUp Server MCP server" /></a>
 
 ## Quick Start
 
@@ -30,6 +34,14 @@ Example configuration snippet for an MCP client:
 3.  **Restart your MCP Client.**
 
 The server will be automatically downloaded and started by the MCP client when needed.
+
+### Installing via Smithery
+
+To install ClickUp MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@Nazruden/clickup-mcp-server):
+
+```bash
+npx -y @smithery/cli install @Nazruden/clickup-mcp-server --client claude
+```
 
 ## Environment Variables
 
