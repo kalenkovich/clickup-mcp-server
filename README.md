@@ -1,6 +1,9 @@
 # ClickUp MCP Server
 
 [![smithery badge](https://smithery.ai/badge/@Nazruden/clickup-mcp-server)](https://smithery.ai/server/@Nazruden/clickup-mcp-server)
+[![npm version](https://badge.fury.io/js/%40nazruden%2Fclickup-server.svg)](https://badge.fury.io/js/%40nazruden%2Fclickup-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<a href="https://www.buymeacoffee.com/nazruden" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-yellow.svg?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee"></a>
 
 A Model Context Protocol server implementation for ClickUp integration, enabling AI assistants to interact with ClickUp workspaces.
 
@@ -246,7 +249,13 @@ You can test the server locally using the MCP Inspector:
 - When run via `npm run dev` or `npm start`, logs go to the console.
 - If run by an MCP client (like Claude for Desktop), logs are typically managed by that client. For Claude for Desktop, logs can often be found at:
   - Windows: `%USERPROFILE%\AppData\Local\Claude\Logs\mcp\<server_name_and_id>\<process_id>.log` (path may vary slightly)
-  - macOS: `~/Library/Logs/Claude/mcp/<server_name_and_id>/<process_id>.log` (path may vary slightly)
+  - macOS: `~/Library/Logs/Claude/mcp/<server_name_and_id>\<process_id>.log` (path may vary slightly)
+
+## Support
+
+If you find this project helpful, consider buying me a coffee to support ongoing development and maintenance.
+
+<a href="https://www.buymeacoffee.com/nazruden" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 ## License
 
