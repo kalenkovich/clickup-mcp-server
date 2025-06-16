@@ -300,13 +300,19 @@ async function main() {
         : undefined;
 
       if (!transport && init) {
-        transport = new StreamableHTTPServerTransport({ … });
-        …
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: sid => { transports[sid] = transport!; }
+        });
+        transport.onclose = () => delete transports[transport!.sessionId!];
+        await server.connect(transport);
       }
-      if (!transport) return res.status(400).send("Unknown MCP session");
+
+      if (!transport) {
+        return res.status(400).send("Unknown MCP session");
+      }
       transport.handleRequest(req.body, res);
     });
-
 
     // GET  /mcp → establish SSE
     app.get("/mcp", (req, res) => {
