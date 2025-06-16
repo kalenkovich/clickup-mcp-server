@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import express from "express";
+import { randomUUID } from "node:crypto";
+import { StreamableHTTPServerTransport }
+  from "@modelcontextprotocol/sdk/server/streamableHttp";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import {
   CallToolRequest,
   CallToolRequestSchema,
@@ -281,12 +285,47 @@ async function main() {
       }
     );
 
-    // Explicitly create and connect the Stdio transport
-    const transport = new StdioServerTransport();
-    server.connect(transport);
-    logger.info(
-      "ClickUp MCP Server started successfully and listening via Stdio."
-    );
+    // Explicitly create and connect the HTTP transport
+    const app = express();
+    app.use(express.json());
+
+    const transports: Record<string, StreamableHTTPServerTransport> = {};
+
+    // POST /mcp → receive JSON requests
+    app.post("/mcp", async (req, res) => {
+      const init = isInitializeRequest(req.body);
+      const sidHeader = req.headers["mcp-session-id"] as string | undefined;
+      let transport = sidHeader && transports[sidHeader];
+
+      if (!transport && init) {
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: sid => { transports[sid] = transport!; }
+        });
+        transport.onclose = () => delete transports[transport!.sessionId!];
+        await server.connect(transport);
+      }
+
+      if (!transport) {
+        return res.status(400).send("Unknown MCP session");
+      }
+      transport.handleRequest(req.body, res);
+    });
+
+    // GET  /mcp → establish SSE
+    app.get("/mcp", (req, res) => {
+      const sid = req.headers["mcp-session-id"] as string | undefined;
+      const transport = sid && transports[sid];
+      if (!transport) return res.status(404).send("Session not found");
+      transport.handleSSE(req, res);
+    });
+
+    const port = Number(process.env.PORT) || 3000;
+    app.listen(port, () => {
+      console.log(`ClickUp MCP Server listening on http://0.0.0.0:${port}`);
+      logger.info("ClickUp MCP Server HTTP transport up and running");
+    });
+
   } catch (error) {
     logger.error("Failed to start ClickUp MCP Server:", error);
     process.exit(1); // Exit with error code
