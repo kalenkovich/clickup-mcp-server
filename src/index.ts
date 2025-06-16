@@ -294,31 +294,31 @@ async function main() {
     // POST /mcp → receive JSON requests
     app.post("/mcp", async (req, res) => {
       const init = isInitializeRequest(req.body);
-      const sidHeader = req.headers["mcp-session-id"] as string | undefined;
-      let transport = sidHeader && transports[sidHeader];
+      const sid = req.headers["mcp-session-id"] as string | undefined;
+      let transport: StreamableHTTPServerTransport | undefined = sid
+        ? transports[sid]
+        : undefined;
 
       if (!transport && init) {
-        transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => randomUUID(),
-          onsessioninitialized: sid => { transports[sid] = transport!; }
-        });
-        transport.onclose = () => delete transports[transport!.sessionId!];
-        await server.connect(transport);
+        transport = new StreamableHTTPServerTransport({ … });
+        …
       }
-
-      if (!transport) {
-        return res.status(400).send("Unknown MCP session");
-      }
+      if (!transport) return res.status(400).send("Unknown MCP session");
       transport.handleRequest(req.body, res);
     });
+
 
     // GET  /mcp → establish SSE
     app.get("/mcp", (req, res) => {
       const sid = req.headers["mcp-session-id"] as string | undefined;
-      const transport = sid && transports[sid];
+      let transport: StreamableHTTPServerTransport | undefined = sid
+        ? transports[sid]
+        : undefined;
+
       if (!transport) return res.status(404).send("Session not found");
       transport.handleSSE(req, res);
     });
+
 
     const port = Number(process.env.PORT) || 3000;
     app.listen(port, () => {
