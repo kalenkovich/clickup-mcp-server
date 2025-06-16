@@ -294,24 +294,47 @@ async function main() {
 
     // POST /mcp → receive JSON requests
     app.post("/mcp", async (req, res) => {
+      // 1. Determine if this is the initialization request
       const init = isInitializeRequest(req.body);
-      const sid = req.headers["mcp-session-id"] as string | undefined;
-      let transport = sid ? transports[sid] : undefined;
 
+      // 2. Extract session ID header (if any)
+      const sid = req.headers["mcp-session-id"] as string | undefined;
+
+      // 3. Lookup existing transport (or undefined)
+      let transport: StreamableHTTPServerTransport | undefined = sid
+        ? transports[sid]
+        : undefined;
+
+      // 4. If no transport yet and this is the init call, create & connect
       if (!transport && init) {
-        transport = new StreamableHTTPServerTransport({ … });
-        transport.onclose = () => delete transports[transport!.sessionId!];
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (newSid) => {
+            transports[newSid] = transport!;
+          },
+        });
+        // Clean up on close
+        transport.onclose = () => {
+          if (transport?.sessionId) {
+            delete transports[transport.sessionId];
+          }
+        };
+        // Connect your MCP server logic to this transport
         await server.connect(transport);
       }
 
+      // 5. If still no transport, we can’t proceed
       if (!transport) {
-        return res.status(400).send("Unknown MCP session");
+        return res.status(400).send("Unknown or uninitialized MCP session");
       }
 
-      // ← Note the three-arg signature:
+      // 6. Delegate to the SDK’s handler (three-arg form)
       await transport.handleRequest(
+        // Express.Request → IncomingMessage
         req as unknown as IncomingMessage,
+        // Express.Response → ServerResponse
         res as unknown as ServerResponse,
+        // The parsed JSON body
         req.body
       );
     });
