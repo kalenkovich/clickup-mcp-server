@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext", // Enable ESM output
+    "moduleResolution": "NodeNext", // ESM-compatible resolution
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
