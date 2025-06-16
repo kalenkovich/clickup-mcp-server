@@ -1,15 +1,9 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/__tests__/**/*",
-    "jest.config.js"
-  ],
   "compilerOptions": {
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true
-  }
+    "module": "NodeNext",       // was "ESNext"; must match moduleResolution
+    "moduleResolution": "NodeNext",
+    // ...existing build-specific options...
+  },
+  // ...existing include/exclude...
 }
