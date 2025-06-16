@@ -3,7 +3,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport }
-  from "@modelcontextprotocol/sdk/server/streamableHttp";
+  from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import {
   CallToolRequest,
