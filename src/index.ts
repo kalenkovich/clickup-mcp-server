@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport }
   from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { IncomingMessage, ServerResponse } from "http";
 import {
   CallToolRequest,
   CallToolRequestSchema,
@@ -311,7 +312,11 @@ async function main() {
       if (!transport) {
         return res.status(400).send("Unknown MCP session");
       }
-      transport.handleRequest(req.body, res);
+      transport.handleRequest(
+        req.body,
+        // express.Response → Node ServerResponse
+        res as unknown as ServerResponse<IncomingMessage>
+      );
     });
 
     // GET  /mcp → establish SSE
